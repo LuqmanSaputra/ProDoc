@@ -2,17 +2,18 @@
 
 ProDoc adalah aplikasi Android berbasis untuk dokumentasi dan manajemen proyek.
 
-Aplikasi ini dirancang untuk membantu teknisi, engineer, maupun tim proyek dalam mengelola:
+Aplikasi mendukung pengelolaan:
 
-* Project
-* Sub Project
-* Material
-* Logic / Configuration
-* Diagram
-* QA Review
-* History Log
+Main Project
+Sub Project
+Material
+Logic / Configuration
+Diagram
+QA Review
+Audit History
+Cloud Synchronization
 
-dengan fitur sinkronisasi cloud menggunakan Firebase.
+dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database dan Firebase.
 
 ---
 
@@ -31,7 +32,8 @@ dengan fitur sinkronisasi cloud menggunakan Firebase.
 * Search Project
 * Status Filter
 * Dashboard Statistics
-* Sync Queue Monitoring
+* Sync Queue Counter
+* Project Summary
 
 ## Project Management
 
@@ -40,23 +42,34 @@ dengan fitur sinkronisasi cloud menggunakan Firebase.
 * Project Detail
 * Project Status Tracking
 
+## Sub Project
+
+* Open Sub Project
+* Edit Sub Project
+* Delete Sub Project
+* Recursive Navigation
+* Parent Child Relation
+
 ## Material Management
 
 * Create Material
 * Edit Material
 * Delete Material
+* Material Detail Screen
 
 ## Logic Management
 
 * Create Logic
 * Edit Logic
 * Delete Logic
+* Logic Detail Screen
 
 ## Diagram Management
 
 * Create Diagram
 * Edit Diagram
 * Delete Diagram
+* Diagram Detail Screen
 
 ## QA Workflow
 
@@ -65,25 +78,38 @@ dengan fitur sinkronisasi cloud menggunakan Firebase.
 * Approved
 * Rejected
 
-## History Log
+## History
 
-* Activity Tracking
-* Audit Trail
+* Automatic History Logging
+* Project History
+* Material History
+* Logic History
+* Diagram History
+* Sub Project History
+
+## UI & UX Refinement
+
+* HorizontalPager Navigation
+* Swipe Navigation
+* Dialog Confirmation Barrier
+* Scrollable Detail Screen
+* State Preservation
+* Loading Overlay
 
 ## Offline First
 
 * Room Database
-* Local Data Storage
 * StateFlow
 * Repository Pattern
+* Sync Queue
 
-## Cloud Synchronization
+## Synchronization
 
 * Firebase Firestore
-* Sync Queue
 * Push Sync
 * Pull Sync
-* WorkManager Background Sync
+* WorkManager Sync
+* Sync Queue Monitoring
 
 ---
 
@@ -117,7 +143,16 @@ dengan fitur sinkronisasi cloud menggunakan Firebase.
 
 * WorkManager
 
-## Image Loading
+## Async & Reactive
+
+* Kotlin Coroutines
+* StateFlow
+
+## Background Processing
+
+* WorkManager
+
+## Media
 
 * Coil
 
@@ -126,26 +161,23 @@ dengan fitur sinkronisasi cloud menggunakan Firebase.
 # Architecture
 
 UI
-
 ↓
-
 ViewModel
-
 ↓
-
 Repository
-
 ↓
-
 Room Database
-
 ↓
-
 Sync Queue
-
 ↓
-
 Firebase Firestore
+
+Alur:
+
+UI tidak mengakses database secara langsung
+UI tidak mengakses Firestore secara langsung
+Semua operasi melalui Repository Layer
+Semua data disimpan lokal terlebih dahulu sebelum sinkronisasi cloud
 
 ---
 
@@ -153,37 +185,39 @@ Firebase Firestore
 
 ```text
 com.prodoc.app
-
 ├── data
-│   ├── local
-│   │   ├── dao
-│   │   ├── entity
-│   │   └── database
-│   │
-│   └── remote
+│ ├── local
+│ │ ├── dao
+│ │ ├── entity
+│ │ ├── converters
+│ │ └── ProDocDatabase
+│ │
+│ └── remote
+│
+├── model
 │
 ├── repository
 │
-├── ui
-│   ├── auth
-│   ├── dashboard
-│   ├── project
-│   ├── material
-│   ├── logic
-│   ├── diagram
-│   ├── qa
-│   └── history
-│
 ├── worker
 │
-└── model
+├── ui
+│ ├── auth
+│ ├── dashboard
+│ ├── project
+│ ├── material
+│ ├── logic
+│ ├── diagram
+│ ├── qa
+│ └── history
+│
+└── MainActivity
+
 ```
 
-# Current Version
+# Current Status
 
-## v1.0 Stable
-
-Completed:
+Completed :
+## v1.0.0 Stable Release
 
 * Authentication
 * Dashboard
@@ -192,52 +226,22 @@ Completed:
 * Logic Management
 * Diagram Management
 * QA Workflow
-* History Log
+* Audit History
 * Offline First Storage
 * Firestore Synchronization
-* WorkManager Sync
 
----
+## v1.1.0 Stable Refinement
 
-# Roadmap
-
-## v1.0.1
-
-UI & UX Refinement
-
-* Material Detail View
-* Logic Detail View
-* Diagram Detail View
-* Scrollable Form
-* Keyboard Handling
-
-## v1.0.2
-
-Sub Project Enhancement
-
-* Open Sub Project
-* Edit Sub Project
-* Delete Sub Project
-* Sub Project Detail
+* Material Detail Screen
+* Logic Detail Screen
+* Diagram Detail Screen
+* HorizontalPager Navigation
+* Dialog Barrier
+* Scroll Fix
+* State Preservation
 * Dashboard Summary Enhancement
-
-## v1.1
-
-Documentation & File Management
-
-* Firebase Storage
-* Image Upload
-* PDF Upload
-* Attachment Manager
-* Pull To Refresh
-
-## v1.2
-
-Reporting & Export
-
-* Export PDF
-* Export Excel
-* Project Summary Report
+* Audit Trail Enhancement
+* Sub Project Navigation Improvement
 
 ---
 
@@ -247,20 +251,36 @@ Coming Soon
 
 ---
 
+## Known Limitations
+
+Saat ini beberapa fitur masih dalam pengembangan:
+
+* Cascade Delete belum diterapkan
+* Parent Child Summary belum tersedia
+* Firebase Storage belum tersedia
+* Upload Attachment belum tersedia
+* Export PDF belum tersedia
+* Export Excel belum tersedia
+
+---
+
 # Development Status
 
-Active Development
-
-Current Milestone:
-
-v1.0 Stable Release
-
-Next Milestone:
-
-v1.0.1 UI & UX Refinement
+* MVVM Architecture
+* Repository Pattern
+* Offline First Architecture
+* Room First
+* Sync Queue First
+* Firestore sebagai sinkronisasi cloud
+* Tidak ada akses database langsung dari UI
+* Tidak ada akses Firestore langsung dari UI
 
 ---
 
 # License
 
-This project is developed for educational and portfolio purposes.
+MIT License
+
+Copyright (c) 2026 ProDoc
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.
