@@ -33,4 +33,9 @@ interface ProjectRepository {
     suspend fun insertHistory(history: HistoryEntity)
 
     fun getProjectFlowById(projectId: String): Flow<ProjectEntity?>
+
+    fun getAllProjectsRaw(): Flow<List<ProjectEntity>>
+    fun getAllMaterialsRaw(): Flow<List<MaterialEntity>>
+    fun getAllLogicsRaw(): Flow<List<LogicEntity>>
+    fun getAllDiagramsRaw(): Flow<List<DiagramEntity>>
 }

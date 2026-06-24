@@ -67,7 +67,7 @@ class ProjectRepositoryImpl(
         if (project != null) {
             val updated = project.copy(status = newStatus, updatedAt = System.currentTimeMillis(), isSynced = false)
             projectDao.insertProject(updated)
-            logHistoryAutomated(projectId, "Status project diubah menjadi ${newStatus.name}")
+            logHistoryAutomated(projectId, "Status project '${newStatus.name}' diubah")
             enqueueSyncAutomated("projects", projectId, "UPDATE")
         }
     }
@@ -144,4 +144,20 @@ class ProjectRepositoryImpl(
 
     override fun getProjectFlowById(projectId: String): Flow<ProjectEntity?> =
         projectDao.getProjectFlowById(projectId)
+    
+    override fun getAllProjectsRaw(): Flow<List<ProjectEntity>> {
+        return projectDao.getAllProjectsFlow()
+    }
+
+    override fun getAllMaterialsRaw(): Flow<List<MaterialEntity>> {
+        return materialDao.getAllMaterialsFlow()
+    }
+
+    override fun getAllLogicsRaw(): Flow<List<LogicEntity>> {
+        return logicDao.getAllLogicsFlow()
+    }
+
+    override fun getAllDiagramsRaw(): Flow<List<DiagramEntity>> {
+        return diagramDao.getAllDiagramsFlow()
+    }
 }

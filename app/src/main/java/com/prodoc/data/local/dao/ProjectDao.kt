@@ -32,4 +32,7 @@ interface ProjectDao {
     @Delete
     suspend fun deleteProject(project: ProjectEntity)
 
+    @Query("SELECT * FROM projects")
+    fun getAllProjectsFlow(): Flow<List<ProjectEntity>>
+
 }

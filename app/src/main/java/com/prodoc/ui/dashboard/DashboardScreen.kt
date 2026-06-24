@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.prodoc.data.local.entity.ProjectEntity
 import com.prodoc.model.ProjectStatus
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 
@@ -76,8 +75,8 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SummaryCard(title = "Total Proyek", count = uiState.projects.size.toString(), modifier = Modifier.weight(1f))
-                SummaryCard(title = "Pending QA", count = uiState.projects.count { it.status == ProjectStatus.PENDING_QA }.toString(), modifier = Modifier.weight(1f))
+                SummaryCard(title = "Total Project", count = uiState.projects.size.toString(), modifier = Modifier.weight(1f))
+                SummaryCard(title = "Pending QA", count = uiState.projects.count { it.entity.status == ProjectStatus.PENDING_QA }.toString(), modifier = Modifier.weight(1f))
                 SummaryCard(title = "Belum Sync", count = uiState.unSyncedCount.toString(), modifier = Modifier.weight(1f))
             }
 
@@ -87,7 +86,7 @@ fun DashboardScreen(
                 value = uiState.searchQuery,
                 onValueChange = { viewModel.onSearchQueryChanged(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Cari proyek atau kategori...") },
+                placeholder = { Text("Cari Project atau kategori...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -125,15 +124,18 @@ fun DashboardScreen(
                 }
             } else if (uiState.projects.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Tidak ada proyek ditemukan", color = MaterialTheme.colorScheme.outline)
+                    Text("Belum ada project", color = MaterialTheme.colorScheme.outline)
                 }
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(uiState.projects, key = { it.projectId }) { project ->
-                        ProjectItemRow(project = project, onClick = { onProjectClick(project.projectId) })
+                    items(uiState.projects, key = { it.entity.projectId }) { projectItem ->
+                        ProjectItemRow(
+                            projectItem = projectItem,
+                            onClick = { onProjectClick(projectItem.entity.projectId) }
+                        )
                     }
                 }
             }
@@ -147,12 +149,12 @@ fun DashboardScreen(
 
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Tambah Proyek Baru") },
+            title = { Text("Tambah Project Baru") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Proyek") })
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Project") })
                     OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Kategori (e.g. Network, Elektronik)") })
-                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") })
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi Singkat") })
                 }
             },
             confirmButton = {
@@ -189,7 +191,9 @@ fun SummaryCard(title: String, count: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ProjectItemRow(project: ProjectEntity, onClick: () -> Unit) {
+fun ProjectItemRow(projectItem: DashboardProjectItem, onClick: () -> Unit) {
+    val project = projectItem.entity
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,7 +206,12 @@ fun ProjectItemRow(project: ProjectEntity, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = project.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = project.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    if (project.parentProjectId != null) {
+                        Text(text = "↳ Sub-Project", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
                 SuggestionChip(
                     onClick = {},
                     label = { Text(project.status.name, style = MaterialTheme.typography.bodySmall) }
@@ -211,6 +220,18 @@ fun ProjectItemRow(project: ProjectEntity, onClick: () -> Unit) {
             Text(text = "Kategori: ${project.category}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = project.description, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(text = "🌿 Sub: ${projectItem.subProjectCount}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                Text(text = "📦 Mat: ${projectItem.materialCount}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                Text(text = "⚙️ Log: ${projectItem.logicCount}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                Text(text = "📊 Diag: ${projectItem.diagramCount}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            }
         }
     }
 }

@@ -25,4 +25,7 @@ interface LogicDao {
 
     @Delete
     suspend fun deleteLogic(logic: LogicEntity)
+
+    @Query("SELECT * FROM logics")
+    fun getAllLogicsFlow(): Flow<List<LogicEntity>>
 }

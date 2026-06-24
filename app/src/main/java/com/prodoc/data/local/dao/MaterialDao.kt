@@ -25,4 +25,7 @@ interface MaterialDao {
 
     @Delete
     suspend fun deleteMaterial(material: MaterialEntity)
+
+    @Query("SELECT * FROM materials")
+    fun getAllMaterialsFlow(): Flow<List<MaterialEntity>>
 }
