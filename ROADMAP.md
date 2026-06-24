@@ -1,35 +1,75 @@
 # ProDoc Roadmap
 
-## v1.0 (Completed)
-- Authentication
-- Dashboard
-- Material
-- Logic
-- Diagram
-- QA
-- History
+# [v1.1.0] - Stable Refinement
 
-## v1.1 (UI & UX Improvement)
-- Detail page Material
-- Detail page Logic
-- Detail page Diagram
-- Scrollable Add/Edit Form
-- Better Navigation
+## Added
 
-## v1.2 (Sub Project Management)
-- Dashboard integration
-- Open Sub Project
-- Edit Sub Project
-- Delete Sub Project
-- Nested hierarchy
+* Material Detail Screen
+* Logic Detail Screen
+* Diagram Detail Screen
+* Dashboard Project Summary
+* Sync Queue Counter
+* HorizontalPager Navigation
+* Scrollable Detail Screen
+* Audit Trail Enhancement
 
-## v1.3 (Document Attachment)
-- Image Upload
-- PDF Upload
-- Preview Attachment
+## Improved
 
-## v1.4 (Production Ready)
-- User Role
-- Admin Management
-- Audit Log
-- Search Improvement
+* Sub Project Navigation
+* Dashboard Statistics
+* User Interaction Safety
+* State Preservation
+
+## Fixed
+
+* Scroll Lock Issue
+* UI Blink Issue
+* Navigation State Issue
+* History Logging Issue
+
+---
+
+# [v1.0.0] - Stable
+
+## Added
+
+* Authentication
+* Dashboard
+* Project Management
+* Material Management
+* Logic Management
+* Diagram Management
+* QA Workflow
+* History Log
+* Room Database
+* Sync Queue
+* Firestore Sync
+* WorkManager Sync
+
+---
+
+# [v1.1.1] - Planned
+
+## Planned
+* Cascade Delete
+* Parent Child Summary
+* Hierarchy Improvement
+
+# [v1.2.0] - Planned
+
+## Planned
+
+* Firebase Storage
+* Image Upload
+* PDF Upload
+* Attachment Manager
+
+# [v1.3.0] - Planned
+
+## Planned
+
+* Export PDF
+* Export Excel
+* Reporting Engine
+* Audit Log
+* Search Improvement
