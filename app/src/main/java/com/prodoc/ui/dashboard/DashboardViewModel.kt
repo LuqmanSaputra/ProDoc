@@ -5,16 +5,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.prodoc.data.local.ProDocDatabase
-import com.prodoc.data.local.entity.ProjectEntity
+import com.prodoc.data.local.entity.*
 import com.prodoc.model.ProjectStatus
 import com.prodoc.repository.ProjectRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+data class DashboardProjectItem(
+    val entity: ProjectEntity,
+    val subProjectCount: Int,
+    val materialCount: Int,
+    val logicCount: Int,
+    val diagramCount: Int
+)
 
 class DashboardViewModel(
     private val repository: ProjectRepository,
@@ -26,22 +30,52 @@ class DashboardViewModel(
     private val _isLoading = MutableStateFlow(false)
 
     val uiState: StateFlow<DashboardUiState> = combine(
-        repository.getAllMainProjects(),
+        repository.getAllProjectsRaw(),
+        repository.getAllMaterialsRaw(),
+        repository.getAllLogicsRaw(),
+        repository.getAllDiagramsRaw(),
         _searchQuery,
         _selectedStatus,
         database.syncQueueDao().getSyncQueueCountFlow(),
         _isLoading
-    ) { projectList, query, status, syncCount, loading ->
+    ) { flowsArray ->
+        @Suppress("UNCHECKED_CAST")
+        val allProjects = flowsArray[0] as List<ProjectEntity>
+        @Suppress("UNCHECKED_CAST")
+        val allMaterials = flowsArray[1] as List<MaterialEntity>
+        @Suppress("UNCHECKED_CAST")
+        val allLogics = flowsArray[2] as List<LogicEntity>
+        @Suppress("UNCHECKED_CAST")
+        val allDiagrams = flowsArray[3] as List<DiagramEntity>
 
-        val filteredProjects = projectList.filter { project ->
+        val query = flowsArray[4] as String
+        val status = flowsArray[5] as ProjectStatus?
+        val syncCount = flowsArray[6] as Int
+        val loading = flowsArray[7] as Boolean
+
+        val filteredProjects = allProjects.filter { project ->
             val matchQuery = project.name.contains(query, ignoreCase = true) ||
                     project.category.contains(query, ignoreCase = true)
+
             val matchStatus = status == null || project.status == status
-            matchQuery && matchStatus
+
+            val matchVisibility = if (query.isBlank()) project.parentProjectId == null else true
+
+            matchQuery && matchStatus && matchVisibility
+        }
+
+        val projectsWithCounters = filteredProjects.map { project ->
+            DashboardProjectItem(
+                entity = project,
+                subProjectCount = allProjects.count { it.parentProjectId == project.projectId },
+                materialCount = allMaterials.count { it.projectId == project.projectId },
+                logicCount = allLogics.count { it.projectId == project.projectId },
+                diagramCount = allDiagrams.count { it.projectId == project.projectId }
+            )
         }
 
         DashboardUiState(
-            projects = filteredProjects,
+            projects = projectsWithCounters,
             searchQuery = query,
             selectedStatusFilter = status,
             unSyncedCount = syncCount,
@@ -71,7 +105,7 @@ class DashboardViewModel(
                 )
                 repository.insertProject(mockProject)
             } catch (e: Exception) {
-                Log.e("DashboardVM", "Gagal menambahkan proyek: ${e.localizedMessage}", e)
+                Log.e("DashboardVM", "Gagal menambahkan project utama: ${e.localizedMessage}", e)
             } finally {
                 _isLoading.value = false
             }

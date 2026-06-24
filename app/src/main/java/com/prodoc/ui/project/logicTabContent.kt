@@ -1,11 +1,9 @@
 package com.prodoc.ui.project
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -13,15 +11,14 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.*
+import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prodoc.data.local.entity.LogicEntity
 import com.prodoc.model.QAStatus
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun LogicTabContent(
@@ -29,36 +26,80 @@ fun LogicTabContent(
     onAddLogicClick: (String, String, String) -> Unit,
     onEditLogicClick: (LogicEntity, String, String, String) -> Unit,
     onDeleteLogicClick: (LogicEntity) -> Unit,
+    onLogicClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingLogic by remember { mutableStateOf<LogicEntity?>(null) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (logics.isEmpty()) {
-            Text(text = "Tambahkan dulu dokumentasi konfigurasi (Logic).", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline, modifier = Modifier.align(Alignment.Center))
+            Text(
+                text = "Tambahkan dulu konfigurasi (Logic).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.align(Alignment.Center)
+            )
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)
+            ) {
                 items(logics, key = { it.logicId }) { logic ->
-                    Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onLogicClick(logic.logicId) },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = logic.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = logic.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 SuggestionChip(onClick = {}, label = { Text(logic.qaStatus.name) })
                             }
-                            Text(text = logic.description, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(4.dp))
 
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Surface(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E1E1E), shape = RoundedCornerShape(6.dp)) {
-                                Box(modifier = Modifier.padding(12.dp).horizontalScroll(rememberScrollState())) {
-                                    Text(text = logic.configText, color = Color(0xFF9CDCFE), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
+                            Text(
+                                text = logic.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Last Update: ${dateFormat.format(Date())}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+
                                 if (logic.qaStatus != QAStatus.APPROVED) {
-                                    IconButton(onClick = { editingLogic = logic }) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) }
-                                    IconButton(onClick = { onDeleteLogicClick(logic) }) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        IconButton(onClick = { editingLogic = logic }) {
+                                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                        IconButton(onClick = { onDeleteLogicClick(logic) }) {
+                                            Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
                                 } else {
                                     Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(8.dp))
                                 }
@@ -69,7 +110,13 @@ fun LogicTabContent(
             }
         }
 
-        ExtendedFloatingActionButton(onClick = { showAddDialog = true }, icon = { Icon(Icons.Default.Add, null) }, text = { Text("Logic") }, containerColor = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp))
+        ExtendedFloatingActionButton(
+            onClick = { showAddDialog = true },
+            icon = { Icon(Icons.Default.Add, null) },
+            text = { Text("Logic") },
+            containerColor = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+        )
     }
 
     if (showAddDialog) {
@@ -81,15 +128,21 @@ fun LogicTabContent(
             onDismissRequest = { showAddDialog = false },
             title = { Text("Tambah Konfigurasi Teknis Baru") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Konfigurasi") })
-                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") })
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .imePadding()
+                ) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Konfigurasi") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(
                         value = config,
                         onValueChange = { config = it },
                         label = { Text("Isi Script") },
                         minLines = 4,
-                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -112,17 +165,23 @@ fun LogicTabContent(
 
         AlertDialog(
             onDismissRequest = { editingLogic = null },
-            title = { Text("Ubah Konfigurasi Teknis") },
+            title = { Text("Edit Konfigurasi Teknis") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Konfigurasi") })
-                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") })
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .imePadding()
+                ) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Konfigurasi") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(
                         value = config,
                         onValueChange = { config = it },
                         label = { Text("Isi Script") },
                         minLines = 4,
-                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },

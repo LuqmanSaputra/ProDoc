@@ -1,9 +1,12 @@
 package com.prodoc.ui.project
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -19,7 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prodoc.data.local.entity.MaterialEntity
 import com.prodoc.model.QAStatus
-import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -28,16 +32,17 @@ fun MaterialTabContent(
     onAddMaterialClick: (String, String, Double) -> Unit,
     onEditMaterialClick: (MaterialEntity, String, String, Double) -> Unit,
     onDeleteMaterialClick: (MaterialEntity) -> Unit,
+    onMaterialClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingMaterial by remember { mutableStateOf<MaterialEntity?>(null) }
-    val rupiahFormatter = remember { NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (materials.isEmpty()) {
             Text(
-                text = "Tambahkan dulu dokumentasi material.",
+                text = "Belum ada material perangkat yang dicatat.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.align(Alignment.Center)
@@ -49,7 +54,9 @@ fun MaterialTabContent(
             ) {
                 items(materials, key = { it.materialId }) { material ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onMaterialClick(material.materialId) },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -66,18 +73,26 @@ fun MaterialTabContent(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    text = rupiahFormatter.format(material.price),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                SuggestionChip(onClick = {}, label = { Text("QA: ${material.qaStatus.name}") })
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = material.description, style = MaterialTheme.typography.bodyMedium)
+
+                            Text(
+                                text = material.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
 
                             if (material.qaStatus == QAStatus.REJECTED && !material.rejectionReason.isNullOrBlank()) {
-                                Text("Alasan: ${material.rejectionReason}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Alasan Ditolak: ${material.rejectionReason}",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -87,7 +102,11 @@ fun MaterialTabContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                SuggestionChip(onClick = {}, label = { Text("QA: ${material.qaStatus.name}") })
+                                Text(
+                                    text = "Last Update: ${dateFormat.format(Date())}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
 
                                 if (material.qaStatus != QAStatus.APPROVED) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -127,27 +146,15 @@ fun MaterialTabContent(
             onDismissRequest = { showAddDialog = false },
             title = { Text("Tambah Material Baru") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Nama Barang/Material")
-                        }
-                    )
-                    OutlinedTextField(
-                        value = desc,
-                        onValueChange = { desc = it },
-                        label = { Text("Deskripsi / Spesifikasi")
-                        }
-                    )
-                    OutlinedTextField(
-                        value = priceStr,
-                        onValueChange = { priceStr = it },
-                        label = { Text("Harga (Rp)") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number
-                        )
-                    )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .imePadding()
+                ) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang/Material") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi / Spesifikasi") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("Harga (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
@@ -169,17 +176,22 @@ fun MaterialTabContent(
             onDismissRequest = { editingMaterial = null },
             title = { Text("Edit Data Material") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang") })
-                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") })
-                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("Harga (Rp)") })
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .imePadding()
+                ) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("Harga (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     val price = priceStr.toDoubleOrNull() ?: 0.0
                     if (name.isNotBlank()) { onEditMaterialClick(editingMaterial!!, name, desc, price); editingMaterial = null }
-                }) { Text("Ubah") }
+                }) { Text("Perbarui") }
             },
             dismissButton = { TextButton(onClick = { editingMaterial = null }) { Text("Batal") } }
         )

@@ -57,7 +57,7 @@ class AuthViewModel(private val userDao: UserDao) : ViewModel() {
                 if (firebaseUser != null) {
                     val localUser = UserEntity(
                         uid = firebaseUser.uid,
-                        name = firebaseUser.displayName ?: "Teknisi ProDoc",
+                        name = firebaseUser.displayName ?: "Nama",
                         email = email,
                         createdAt = System.currentTimeMillis()
                     )

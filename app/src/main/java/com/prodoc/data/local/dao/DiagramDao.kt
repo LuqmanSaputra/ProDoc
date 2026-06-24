@@ -25,4 +25,7 @@ interface DiagramDao {
 
     @Delete
     suspend fun deleteDiagram(diagram: DiagramEntity)
+
+    @Query("SELECT * FROM diagrams")
+    fun getAllDiagramsFlow(): Flow<List<DiagramEntity>>
 }

@@ -27,7 +27,7 @@ class ProjectDetailViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<ProjectDetailUiState> =
         combine(
-            repository.getAllMainProjects(),
+            repository.getProjectFlowById(projectId),
             repository.getSubProjectsByParent(projectId),
             repository.getMaterialsByProject(projectId),
             repository.getLogicsByProject(projectId),
@@ -37,7 +37,7 @@ class ProjectDetailViewModel(
             _isLoading
         ) { values ->
             ProjectDetailUiState(
-                project = (values[0] as List<ProjectEntity>).find { it.projectId == projectId },
+                project = values[0] as ProjectEntity?,
                 subProjects = values[1] as List<ProjectEntity>,
                 materials = values[2] as List<MaterialEntity>,
                 logics = values[3] as List<LogicEntity>,
@@ -57,6 +57,46 @@ class ProjectDetailViewModel(
         _currentTab.value = tab
     }
 
+    fun editSubProject(subProject: ProjectEntity, name: String, category: String, description: String) {
+        viewModelScope.launch {
+            try {
+                val updatedSub = subProject.copy(
+                    name = name,
+                    category = category,
+                    description = description,
+                    updatedAt = System.currentTimeMillis()
+                )
+                repository.updateProject(updatedSub)
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = "Sub-Project '${subProject.name}' telah di ubah '$name'",
+                    timestamp = System.currentTimeMillis()
+                ))
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal memperbarui sub-project: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun deleteSubProject(subProject: ProjectEntity) {
+        viewModelScope.launch {
+            try {
+                repository.deleteProject(subProject)
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = "Sub-Project '${subProject.name}' dihapus dari sistem",
+                    timestamp = System.currentTimeMillis()
+                ))
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal menghapus sub-project: ${e.localizedMessage}")
+            }
+        }
+    }
+
     fun addSubProject(name: String, category: String, description: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -72,6 +112,13 @@ class ProjectDetailViewModel(
                     updatedAt = System.currentTimeMillis()
                 )
                 repository.insertProject(subProject)
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = "Sub-Project '$name' ditambahkan ke dalam project ini",
+                    timestamp = System.currentTimeMillis()
+                ))
             } catch (e: Exception) {
                 Log.e("ProjectDetailVM", "Gagal menambahkan sub-project: ${e.localizedMessage}", e)
             } finally {
@@ -111,7 +158,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Material '${material.name}' diubah (Status reset ke DRAFT)"
+                actionDescription = "Material '${material.name}' diubah (Status reset ke DRAFT)",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -122,7 +170,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Material '${material.name}' dihapus"
+                actionDescription = "Material '${material.name}' dihapus",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -158,7 +207,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Logic '${logic.name}' diubah (Status reset ke DRAFT)"
+                actionDescription = "Logic '${logic.name}' diubah (Status reset ke DRAFT)",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -169,7 +219,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Logic '${logic.name}' dihapus"
+                actionDescription = "Logic '${logic.name}' dihapus",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -185,7 +236,8 @@ class ProjectDetailViewModel(
                     photoUrl = photoUrl,
                     pdfFilePath = pdfPath,
                     drawioFilePath = drawioPath,
-                    qaStatus = QAStatus.DRAFT
+                    qaStatus = QAStatus.DRAFT,
+                    createdAt = System.currentTimeMillis()
                 )
                 repository.insertDiagram(newDiagram)
             } catch (e: Exception) {
@@ -209,7 +261,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Diagram '${diagram.name}' diubah (Status reset ke DRAFT)"
+                actionDescription = "Diagram '${diagram.name}' diubah (Status reset ke DRAFT)",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -220,7 +273,8 @@ class ProjectDetailViewModel(
             repository.insertHistory(HistoryEntity(
                 historyId = UUID.randomUUID().toString(),
                 projectId = projectId,
-                actionDescription = "Diagram '${diagram.name}' dihapus"
+                actionDescription = "Diagram '${diagram.name}' dihapus",
+                timestamp = System.currentTimeMillis()
             ))
         }
     }
@@ -229,12 +283,6 @@ class ProjectDetailViewModel(
         viewModelScope.launch {
             val updated = material.copy(qaStatus = newStatus, rejectionReason = reason)
             repository.updateMaterial(updated)
-            val message = "QA Material '${material.name}' diubah menjadi ${newStatus.name}"
-            repository.insertHistory(HistoryEntity(
-                historyId = UUID.randomUUID().toString(),
-                projectId = projectId,
-                actionDescription = message
-            ))
         }
     }
 
@@ -242,12 +290,6 @@ class ProjectDetailViewModel(
         viewModelScope.launch {
             val updated = logic.copy(qaStatus = newStatus, rejectionReason = reason)
             repository.updateLogic(updated)
-            val message = "QA Logic '${logic.name}' diubah menjadi ${newStatus.name}"
-            repository.insertHistory(HistoryEntity(
-                historyId = UUID.randomUUID().toString(),
-                projectId = projectId,
-                actionDescription = message
-            ))
         }
     }
 
@@ -255,12 +297,6 @@ class ProjectDetailViewModel(
         viewModelScope.launch {
             val updated = diagram.copy(qaStatus = newStatus, rejectionReason = reason)
             repository.updateDiagram(updated)
-            val message = "QA Diagram '${diagram.name}' diubah menjadi ${newStatus.name}"
-            repository.insertHistory(HistoryEntity(
-                historyId = UUID.randomUUID().toString(),
-                projectId = projectId,
-                actionDescription = message
-            ))
         }
     }
 
@@ -269,20 +305,18 @@ class ProjectDetailViewModel(
             try {
                 val currentProject = uiState.value.project
                 if (currentProject != null) {
-
                     val deleteSyncAction = SyncQueueEntity(
                         recordId = projectId,
                         tableName = "projects",
-                        operation = "DELETE"
+                        operation = "DELETE",
+                        timestamp = System.currentTimeMillis()
                     )
-                    database.syncQueueDao().insert(deleteSyncAction)
-
+                    database.syncQueueDao().enqueue(deleteSyncAction)
                     repository.deleteProject(currentProject)
-
                     onSuccess()
                 }
             } catch (e: Exception) {
-                Log.e("ProjectDetailVM", "Gagal menghapus proyek utama: ${e.localizedMessage}", e)
+                Log.e("ProjectDetailVM", "Gagal menghapus project: ${e.localizedMessage}", e)
             }
         }
     }
