@@ -1,6 +1,7 @@
 package com.prodoc.ui.project
 
 import com.prodoc.data.local.entity.*
+import com.prodoc.domain.hierarchy.HierarchySummary
 
 data class ProjectDetailUiState(
     val project: ProjectEntity? = null,
@@ -11,5 +12,6 @@ data class ProjectDetailUiState(
     val historyLogs: List<HistoryEntity> = emptyList(),
     val currentTab: ProjectTab = ProjectTab.DETAIL,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val projectSummary: HierarchySummary? = null
 )

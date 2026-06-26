@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.prodoc.data.local.ProDocDatabase
 import com.prodoc.data.local.entity.*
+import com.prodoc.domain.hierarchy.HierarchySummary
 import com.prodoc.model.ProjectStatus
 import com.prodoc.model.QAStatus
 import com.prodoc.repository.ProjectRepository
@@ -34,7 +35,8 @@ class ProjectDetailViewModel(
             repository.getDiagramsByProject(projectId),
             repository.getHistoryByProject(projectId),
             _currentTab,
-            _isLoading
+            _isLoading,
+            repository.getProjectSummary(projectId)
         ) { values ->
             ProjectDetailUiState(
                 project = values[0] as ProjectEntity?,
@@ -44,7 +46,8 @@ class ProjectDetailViewModel(
                 diagrams = values[4] as List<DiagramEntity>,
                 historyLogs = values[5] as List<HistoryEntity>,
                 currentTab = values[6] as ProjectTab,
-                isLoading = values[7] as Boolean
+                isLoading = values[7] as Boolean,
+                projectSummary = values[8] as HierarchySummary?
             )
         }
             .stateIn(
@@ -281,22 +284,73 @@ class ProjectDetailViewModel(
 
     fun updateMaterialQaStatus(material: MaterialEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
-            val updated = material.copy(qaStatus = newStatus, rejectionReason = reason)
-            repository.updateMaterial(updated)
+            try {
+                val updated = material.copy(qaStatus = newStatus, rejectionReason = reason)
+                repository.updateMaterial(updated)
+
+                val actionMsg = if (newStatus == QAStatus.APPROVED) {
+                    "QA Material '${material.name}' disetujui."
+                } else {
+                    "QA Material '${material.name}' ditolak.\nAlasan:\n${reason ?: "Tidak ada alasan spesifik"}"
+                }
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = actionMsg,
+                    timestamp = System.currentTimeMillis()
+                ))
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal memperbarui QA Material: ${e.localizedMessage}")
+            }
         }
     }
 
     fun updateLogicQaStatus(logic: LogicEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
-            val updated = logic.copy(qaStatus = newStatus, rejectionReason = reason)
-            repository.updateLogic(updated)
+            try {
+                val updated = logic.copy(qaStatus = newStatus, rejectionReason = reason)
+                repository.updateLogic(updated)
+
+                val actionMsg = if (newStatus == QAStatus.APPROVED) {
+                    "QA Logic '${logic.name}' disetujui."
+                } else {
+                    "QA Logic '${logic.name}' ditolak.\nAlasan:\n${reason ?: "Tidak ada alasan spesifik"}"
+                }
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = actionMsg,
+                    timestamp = System.currentTimeMillis()
+                ))
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal memperbarui QA Logic: ${e.localizedMessage}")
+            }
         }
     }
 
     fun updateDiagramQaStatus(diagram: DiagramEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
-            val updated = diagram.copy(qaStatus = newStatus, rejectionReason = reason)
-            repository.updateDiagram(updated)
+            try {
+                val updated = diagram.copy(qaStatus = newStatus, rejectionReason = reason)
+                repository.updateDiagram(updated)
+
+                val actionMsg = if (newStatus == QAStatus.APPROVED) {
+                    "QA Diagram '${diagram.name}' disetujui."
+                } else {
+                    "QA Diagram '${diagram.name}' ditolak.\nAlasan:\n${reason ?: "Tidak ada alasan spesifik"}"
+                }
+
+                repository.insertHistory(HistoryEntity(
+                    historyId = UUID.randomUUID().toString(),
+                    projectId = projectId,
+                    actionDescription = actionMsg,
+                    timestamp = System.currentTimeMillis()
+                ))
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal memperbarui QA Diagram: ${e.localizedMessage}")
+            }
         }
     }
 

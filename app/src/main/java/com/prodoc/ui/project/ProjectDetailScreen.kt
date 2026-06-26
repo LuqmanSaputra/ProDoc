@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,7 @@ import com.prodoc.data.local.entity.DiagramEntity
 import com.prodoc.data.local.entity.LogicEntity
 import com.prodoc.data.local.entity.MaterialEntity
 import com.prodoc.data.local.entity.ProjectEntity
+import com.prodoc.domain.hierarchy.HierarchySummary
 import com.prodoc.model.QAStatus
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -103,16 +105,21 @@ fun ProjectDetailScreen(
 
     val pagerState = rememberPagerState(pageCount = { tabsToDisplay.size })
 
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage < tabsToDisplay.size) {
-            viewModel.onTabSelected(tabsToDisplay[pagerState.currentPage])
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { settledPage ->
+            if (settledPage < tabsToDisplay.size) {
+                val targetTab = tabsToDisplay[settledPage]
+                if (uiState.currentTab != targetTab) {
+                    viewModel.onTabSelected(targetTab)
+                }
+            }
         }
     }
 
     LaunchedEffect(uiState.currentTab) {
         val targetPage = tabsToDisplay.indexOf(uiState.currentTab)
-        if (targetPage != -1 && pagerState.currentPage != targetPage) {
-            pagerState.scrollToPage(targetPage)
+        if (targetPage != -1 && pagerState.currentPage != targetPage && !pagerState.isScrollInProgress) {
+            pagerState.animateScrollToPage(targetPage)
         }
     }
 
@@ -139,6 +146,10 @@ fun ProjectDetailScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                uiState.projectSummary?.let { summary ->
+                    ProjectSummaryCard(summary = summary)
+                }
+
                 ScrollableTabRow(selectedTabIndex = pagerState.currentPage.coerceAtMost(tabsToDisplay.size - 1)) {
                     tabsToDisplay.forEachIndexed { index, tab ->
                         Tab(
@@ -162,129 +173,111 @@ fun ProjectDetailScreen(
                     if (currentProject != null) {
                         HorizontalPager(
                             state = pagerState,
+                            key = { page -> tabsToDisplay[page].name },
                             modifier = Modifier.fillMaxSize(),
                             verticalAlignment = Alignment.Top
                         ) { page ->
-                            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                                when (tabsToDisplay[page]) {
-                                    ProjectTab.DETAIL -> {
-                                        Column(
-                                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-                                            Card(modifier = Modifier.fillMaxWidth()) {
-                                                Column(modifier = Modifier.padding(16.dp)) {
-                                                    Text(text = currentProject.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(text = "Kategori: ${currentProject.category}", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
-                                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                                                    Text(text = "Deskripsi Lapangan:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                                    Text(text = currentProject.description, style = MaterialTheme.typography.bodyLarge)
-                                                }
-                                            }
-
-                                            Card(modifier = Modifier.fillMaxWidth()) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Column {
-                                                        Text(text = "Status Audit Project", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                                        Text(text = currentProject.status.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                                    }
-                                                    SuggestionChip(onClick = {}, label = { Text(if (currentProject.parentProjectId != null) "Sub-Project" else "Main Project") })
-                                                }
-                                            }
-
-                                            Button(
-                                                onClick = { showDeleteConfirm = true },
-                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                                modifier = Modifier.fillMaxWidth()
+                            val currentTabType = tabsToDisplay[page]
+                            androidx.compose.runtime.key(currentTabType) {
+                                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                                    when (currentTabType) {
+                                        ProjectTab.DETAIL -> {
+                                            Column(
+                                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                                                verticalArrangement = Arrangement.spacedBy(16.dp)
                                             ) {
-                                                Icon(Icons.Default.Delete, contentDescription = null)
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Hapus Project")
+                                                Card(modifier = Modifier.fillMaxWidth()) {
+                                                    Column(modifier = Modifier.padding(16.dp)) {
+                                                        Text(text = currentProject.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(text = "Kategori: ${currentProject.category}", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
+                                                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                                                        Text(text = "Deskripsi Lapangan:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                                        Text(text = currentProject.description, style = MaterialTheme.typography.bodyLarge)
+                                                    }
+                                                }
+
+                                                Card(modifier = Modifier.fillMaxWidth()) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Column {
+                                                            Text(text = "Status Audit Project", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                                            Text(text = currentProject.status.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                                        }
+                                                        SuggestionChip(onClick = {}, label = { Text(if (currentProject.parentProjectId != null) "Sub-Project" else "Main Project") })
+                                                    }
+                                                }
+
+                                                Button(
+                                                    onClick = { showDeleteConfirm = true },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("Hapus Project")
+                                                }
                                             }
                                         }
-                                    }
-
-                                    ProjectTab.SUB_PROJECT -> SubProjectTabContent(
-                                        subProjects = uiState.subProjects,
-                                        onAddSubProjectClick = { name, cat, desc -> viewModel.addSubProject(name, cat, desc) },
-                                        onEditSubProjectClick = { sub, name, cat, desc ->
-                                            pendingEditSubProject = SubProjectEditPayload(sub, name, cat, desc)
-                                        },
-                                        onDeleteSubProjectClick = { sub ->
-                                            pendingDeleteSubProject = sub
-                                        },
-                                        onSubProjectClick = onProjectClick
-                                    )
-
-                                    ProjectTab.MATERIAL -> MaterialTabContent(
-                                        materials = uiState.materials,
-                                        onAddMaterialClick = { name, desc, price -> viewModel.addMaterialToProject(name, desc, price) },
-                                        onEditMaterialClick = { entity, name, desc, price ->
-                                            pendingEditMaterial = MaterialEditPayload(entity, name, desc, price)
-                                        },
-                                        onDeleteMaterialClick = { entity ->
-                                            pendingDeleteMaterial = entity
-                                        },
-                                        onMaterialClick = onMaterialClick
-                                    )
-
-                                    ProjectTab.LOGIC -> LogicTabContent(
-                                        logics = uiState.logics,
-                                        onAddLogicClick = { name, desc, config -> viewModel.addLogicToProject(name, desc, config) },
-                                        onEditLogicClick = { entity, name, desc, config ->
-                                            pendingEditLogic = LogicEditPayload(entity, name, desc, config)
-                                        },
-                                        onDeleteLogicClick = { entity ->
-                                            pendingDeleteLogic = entity
-                                        },
-                                        onLogicClick = onLogicClick
-                                    )
-
-                                    ProjectTab.DIAGRAM -> DiagramTabContent(
-                                        diagrams = uiState.diagrams,
-                                        onAddDiagramClick = { name, desc, photo, pdf, drawio -> viewModel.addDiagramToProject(name, desc, photo, pdf, drawio) },
-                                        onEditDiagramClick = { entity, name, desc, photo, pdf, drawio ->
-                                            pendingEditDiagram = DiagramEditPayload(entity, name, desc, photo, pdf, drawio)
-                                        },
-                                        onDeleteDiagramClick = { entity ->
-                                            pendingDeleteDiagram = entity
-                                        },
-                                        onDiagramClick = onDiagramClick
-                                    )
-
-                                    ProjectTab.QA -> {
-                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                                            item { Text("Pilih Dokumen Untuk Melakukan Validasi QA:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium) }
-                                            items(uiState.materials) { mat ->
-                                                ItemRowQA(name = "📦 Material: ${mat.name}", status = mat.qaStatus.name, modifier = Modifier.clickable { reviewingMaterial = mat })
-                                            }
-                                            items(uiState.logics) { log ->
-                                                ItemRowQA(name = "⚙️ Logic Script: ${log.name}", status = log.qaStatus.name, modifier = Modifier.clickable { reviewingLogic = log })
-                                            }
-                                            items(uiState.diagrams) { diag ->
-                                                ItemRowQA(name = "📊 Diagram Topologi: ${diag.name}", status = diag.qaStatus.name, modifier = Modifier.clickable { reviewingDiagram = diag })
-                                            }
-                                        }
-                                    }
-
-                                    ProjectTab.HISTORY -> {
-                                        if (uiState.historyLogs.isEmpty()) {
-                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                Text("Belum ada histori yang tercatat.", color = MaterialTheme.colorScheme.outline)
-                                            }
-                                        } else {
+                                        ProjectTab.SUB_PROJECT -> SubProjectTabContent(
+                                            subProjects = uiState.subProjects,
+                                            onAddSubProjectClick = { name, cat, desc -> viewModel.addSubProject(name, cat, desc) },
+                                            onEditSubProjectClick = { sub, name, cat, desc -> pendingEditSubProject = SubProjectEditPayload(sub, name, cat, desc) },
+                                            onDeleteSubProjectClick = { sub -> pendingDeleteSubProject = sub },
+                                            onSubProjectClick = onProjectClick
+                                        )
+                                        ProjectTab.MATERIAL -> MaterialTabContent(
+                                            materials = uiState.materials,
+                                            onAddMaterialClick = { name, desc, price -> viewModel.addMaterialToProject(name, desc, price) },
+                                            onEditMaterialClick = { entity, name, desc, price -> pendingEditMaterial = MaterialEditPayload(entity, name, desc, price) },
+                                            onDeleteMaterialClick = { entity -> pendingDeleteMaterial = entity },
+                                            onMaterialClick = onMaterialClick
+                                        )
+                                        ProjectTab.LOGIC -> LogicTabContent(
+                                            logics = uiState.logics,
+                                            onAddLogicClick = { name, desc, config -> viewModel.addLogicToProject(name, desc, config) },
+                                            onEditLogicClick = { entity, name, desc, config -> pendingEditLogic = LogicEditPayload(entity, name, desc, config) },
+                                            onDeleteLogicClick = { entity -> pendingDeleteLogic = entity },
+                                            onLogicClick = onLogicClick
+                                        )
+                                        ProjectTab.DIAGRAM -> DiagramTabContent(
+                                            diagrams = uiState.diagrams,
+                                            onAddDiagramClick = { name, desc, photo, pdf, drawio -> viewModel.addDiagramToProject(name, desc, photo, pdf, drawio) },
+                                            onEditDiagramClick = { entity, name, desc, photo, pdf, drawio -> pendingEditDiagram = DiagramEditPayload(entity, name, desc, photo, pdf, drawio) },
+                                            onDeleteDiagramClick = { entity -> pendingDeleteDiagram = entity },
+                                            onDiagramClick = onDiagramClick
+                                        )
+                                        ProjectTab.QA -> {
                                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                                                items(uiState.historyLogs) { log ->
-                                                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                                                        Column(modifier = Modifier.padding(12.dp)) {
-                                                            Text(text = log.actionDescription, style = MaterialTheme.typography.bodyMedium)
-                                                            Spacer(modifier = Modifier.height(4.dp))
-                                                            Text(text = dateFormat.format(Date(log.timestamp)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                                item { Text("Pilih Dokumen Untuk Melakukan Validasi QA:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium) }
+                                                items(uiState.materials, key = { "qa_mat_${it.materialId}" }) { mat ->
+                                                    ItemRowQA(name = "📦 Material: ${mat.name}", status = mat.qaStatus.name, modifier = Modifier.clickable { reviewingMaterial = mat })
+                                                }
+                                                items(uiState.logics, key = { "qa_log_${it.logicId}" }) { log ->
+                                                    ItemRowQA(name = "⚙️ Logic Script: ${log.name}", status = log.qaStatus.name, modifier = Modifier.clickable { reviewingLogic = log })
+                                                }
+                                                items(uiState.diagrams, key = { "qa_diag_${it.diagramId}" }) { diag ->
+                                                    ItemRowQA(name = "📊 Diagram Topologi: ${diag.name}", status = diag.qaStatus.name, modifier = Modifier.clickable { reviewingDiagram = diag })
+                                                }
+                                            }
+                                        }
+                                        ProjectTab.HISTORY -> {
+                                            if (uiState.historyLogs.isEmpty()) {
+                                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    Text("Belum ada histori yang tercatat.", color = MaterialTheme.colorScheme.outline)
+                                                }
+                                            } else {
+                                                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+                                                    items(uiState.historyLogs, key = { it.historyId }) { log ->
+                                                        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                                                            Column(modifier = Modifier.padding(12.dp)) {
+                                                                Text(text = log.actionDescription, style = MaterialTheme.typography.bodyMedium)
+                                                                Spacer(modifier = Modifier.height(4.dp))
+                                                                Text(text = dateFormat.format(Date(log.timestamp)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -465,6 +458,68 @@ fun ReviewQADialog(title: String, description: String, onDismiss: () -> Unit, on
             }
         }
     )
+}
+
+@Composable
+fun ProjectSummaryCard(
+    summary: HierarchySummary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "📊 Ringkasan Kumulatif Project (Utama & Sub)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                    Text(text = "📂 Sub Project: ${summary.totalSubProjects}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "📦 Material: ${summary.totalMaterials}", style = MaterialTheme.typography.bodyMedium)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                    Text(text = "⚙️ Logic: ${summary.totalLogics}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "📐 Diagram: ${summary.totalDiagrams}", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💰 Total Material Cost:",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Text(
+                    text = String.format(Locale.forLanguageTag("id-ID"), "Rp %,.0f", summary.totalMaterialCost),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
+    }
 }
 
 data class SubProjectEditPayload(val entity: ProjectEntity, val name: String, val category: String, val description: String)

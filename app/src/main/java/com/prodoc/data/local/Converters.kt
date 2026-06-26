@@ -4,6 +4,8 @@ import androidx.room.TypeConverter
 import com.prodoc.model.ProjectStatus
 import com.prodoc.model.QAStatus
 
+@Suppress("unused")
+
 class Converters {
 
     @TypeConverter

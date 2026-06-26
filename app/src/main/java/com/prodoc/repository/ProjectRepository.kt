@@ -1,6 +1,7 @@
 package com.prodoc.repository
 
 import com.prodoc.data.local.entity.*
+import com.prodoc.domain.hierarchy.HierarchySummary
 import com.prodoc.model.ProjectStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,6 @@ interface ProjectRepository {
     fun getAllMaterialsRaw(): Flow<List<MaterialEntity>>
     fun getAllLogicsRaw(): Flow<List<LogicEntity>>
     fun getAllDiagramsRaw(): Flow<List<DiagramEntity>>
+
+    fun getProjectSummary(targetProjectId: String): Flow<HierarchySummary>
 }

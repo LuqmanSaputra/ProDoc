@@ -31,7 +31,6 @@ abstract class ProDocDatabase : RoomDatabase() {
     abstract fun materialDao(): MaterialDao
     abstract fun logicDao(): LogicDao
     abstract fun diagramDao(): DiagramDao
-    abstract fun qaReviewDao(): QAReviewDao
     abstract fun historyDao(): HistoryDao
     abstract fun syncQueueDao(): SyncQueueDao
 

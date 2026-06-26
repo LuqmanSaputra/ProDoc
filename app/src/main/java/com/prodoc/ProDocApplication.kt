@@ -2,11 +2,11 @@ package com.prodoc
 
 import android.app.Application
 import com.prodoc.data.local.ProDocDatabase
+import com.prodoc.domain.hierarchy.HierarchyService
 import com.prodoc.repository.*
 import java.util.concurrent.TimeUnit
 import com.prodoc.data.remote.SyncWorker
 import androidx.work.*
-
 
 class ProDocApplication : Application() {
 
@@ -16,12 +16,14 @@ class ProDocApplication : Application() {
 
     val projectRepository: ProjectRepository by lazy {
         ProjectRepositoryImpl(
+            database = database,
             projectDao = database.projectDao(),
             materialDao = database.materialDao(),
             logicDao = database.logicDao(),
             diagramDao = database.diagramDao(),
             historyDao = database.historyDao(),
-            syncQueueDao = database.syncQueueDao()
+            syncQueueDao = database.syncQueueDao(),
+            hierarchyService = HierarchyService()
         )
     }
 

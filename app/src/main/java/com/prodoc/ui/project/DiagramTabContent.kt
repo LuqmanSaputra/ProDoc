@@ -46,7 +46,11 @@ fun DiagramTabContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)
             ) {
-                items(diagrams, key = { it.diagramId }) { diagram ->
+                items(
+                    items = diagrams,
+                    key = { it.diagramId },
+                    contentType = { "DiagramItemCard" }
+                ) { diagram ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

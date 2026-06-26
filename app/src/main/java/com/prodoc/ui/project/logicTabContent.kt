@@ -46,7 +46,11 @@ fun LogicTabContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)
             ) {
-                items(logics, key = { it.logicId }) { logic ->
+                items(
+                    items = logics,
+                    key = { it.logicId },
+                    contentType = { "LogicItemCard" }
+                ) { logic ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

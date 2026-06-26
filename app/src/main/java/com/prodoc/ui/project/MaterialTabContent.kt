@@ -52,7 +52,11 @@ fun MaterialTabContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize().padding(bottom = 72.dp)
             ) {
-                items(materials, key = { it.materialId }) { material ->
+                items(
+                    items = materials,
+                    key = { it.materialId },
+                    contentType = { "MaterialItemCard" }
+                ) { material ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

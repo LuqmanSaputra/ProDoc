@@ -1,18 +1,26 @@
 package com.prodoc.repository
 
+import androidx.room.withTransaction
+import com.prodoc.data.local.ProDocDatabase
 import com.prodoc.data.local.dao.*
 import com.prodoc.data.local.entity.*
+import com.prodoc.domain.hierarchy.HierarchyService
+import com.prodoc.domain.hierarchy.HierarchySummary
 import com.prodoc.model.ProjectStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 
 class ProjectRepositoryImpl(
+    private val database: ProDocDatabase,
     private val projectDao: ProjectDao,
     private val materialDao: MaterialDao,
     private val logicDao: LogicDao,
     private val diagramDao: DiagramDao,
     private val historyDao: HistoryDao,
-    private val syncQueueDao: SyncQueueDao
+    private val syncQueueDao: SyncQueueDao,
+    private val hierarchyService: HierarchyService
 ) : ProjectRepository {
 
     private suspend fun logHistoryAutomated(projectId: String, message: String) {
@@ -45,6 +53,16 @@ class ProjectRepositoryImpl(
         projectDao.getProjectById(projectId)
 
     override suspend fun insertProject(project: ProjectEntity) {
+        val allProjects = projectDao.getAllProjectsFlow().first()
+        val validation = hierarchyService.validateHierarchy(
+            allProjects = allProjects,
+            targetProjectId = project.projectId,
+            newParentProjectId = project.parentProjectId
+        )
+        if (!validation.isValid) {
+            throw IllegalArgumentException(validation.errorMessage ?: "Validasi hierarki gagal.")
+        }
+
         projectDao.insertProject(project)
         val logMsg = if (project.parentProjectId == null) "Project utama '${project.name}' dibuat" else "Sub project '${project.name}' ditambahkan"
         logHistoryAutomated(project.projectId, logMsg)
@@ -52,24 +70,85 @@ class ProjectRepositoryImpl(
     }
 
     override suspend fun updateProject(project: ProjectEntity) {
+        val allProjects = projectDao.getAllProjectsFlow().first()
+        val validation = hierarchyService.validateHierarchy(
+            allProjects = allProjects,
+            targetProjectId = project.projectId,
+            newParentProjectId = project.parentProjectId
+        )
+        if (!validation.isValid) {
+            throw IllegalArgumentException(validation.errorMessage ?: "Validasi hierarki gagal.")
+        }
+
         projectDao.insertProject(project.copy(isSynced = false))
         logHistoryAutomated(project.projectId, "Informasi project '${project.name}' diubah")
         enqueueSyncAutomated("projects", project.projectId, "UPDATE")
     }
 
     override suspend fun deleteProject(project: ProjectEntity) {
-        projectDao.deleteProject(project)
-        enqueueSyncAutomated("projects", project.projectId, "DELETE")
+        val allProjects = projectDao.getAllProjectsFlow().first()
+        val allMaterials = materialDao.getAllMaterialsFlow().first()
+        val allLogics = logicDao.getAllLogicsFlow().first()
+        val allDiagrams = diagramDao.getAllDiagramsFlow().first()
+
+        val deletePlan = hierarchyService.buildCascadeDeletePlan(
+            targetProjectId = project.projectId,
+            allProjects = allProjects,
+            allMaterials = allMaterials,
+            allLogics = allLogics,
+            allDiagrams = allDiagrams
+        )
+
+        val projectMap = allProjects.associateBy { it.projectId }
+        val materialMap = allMaterials.associateBy { it.materialId }
+        val logicMap = allLogics.associateBy { it.logicId }
+        val diagramMap = allDiagrams.associateBy { it.diagramId }
+
+        database.withTransaction {
+            deletePlan.materialIdsToDelete.forEach { id ->
+                materialMap[id]?.let { mat ->
+                    materialDao.deleteMaterial(mat)
+                    logHistoryAutomated(mat.projectId, "Material '${mat.name}' dihapus otomatis via cascade")
+                    enqueueSyncAutomated("materials", mat.materialId, "DELETE")
+                }
+            }
+
+            deletePlan.logicIdsToDelete.forEach { id ->
+                logicMap[id]?.let { log ->
+                    logicDao.deleteLogic(log)
+                    logHistoryAutomated(log.projectId, "Logic '${log.name}' diaktifkan untuk hapus via cascade")
+                    enqueueSyncAutomated("logics", log.logicId, "DELETE")
+                }
+            }
+
+            deletePlan.diagramIdsToDelete.forEach { id ->
+                diagramMap[id]?.let { diag ->
+                    diagramDao.deleteDiagram(diag)
+                    logHistoryAutomated(diag.projectId, "Diagram '${diag.name}' dibersihkan via cascade")
+                    enqueueSyncAutomated("diagrams", diag.diagramId, "DELETE")
+                }
+            }
+
+            deletePlan.projectIdsToDelete.forEach { id ->
+                projectMap[id]?.let { proj ->
+                    projectDao.deleteProject(proj)
+                    if (proj.projectId == project.projectId) {
+                        enqueueSyncAutomated("projects", proj.projectId, "DELETE")
+                    } else {
+                        logHistoryAutomated(project.projectId, "Sub-proyek '${proj.name}' ikut musnah via kaskade")
+                        enqueueSyncAutomated("projects", proj.projectId, "DELETE")
+                    }
+                }
+            }
+        }
     }
 
     override suspend fun updateProjectStatus(projectId: String, newStatus: ProjectStatus) {
-        val project = projectDao.getProjectById(projectId)
-        if (project != null) {
-            val updated = project.copy(status = newStatus, updatedAt = System.currentTimeMillis(), isSynced = false)
-            projectDao.insertProject(updated)
-            logHistoryAutomated(projectId, "Status project '${newStatus.name}' diubah")
-            enqueueSyncAutomated("projects", projectId, "UPDATE")
-        }
+        val project = projectDao.getProjectById(projectId) ?: return
+        val updated = project.copy(status = newStatus, updatedAt = System.currentTimeMillis(), isSynced = false)
+        projectDao.insertProject(updated)
+        logHistoryAutomated(projectId, "Status project '${newStatus.name}' diubah")
+        enqueueSyncAutomated("projects", projectId, "UPDATE")
     }
 
     override fun getMaterialsByProject(projectId: String): Flow<List<MaterialEntity>> =
@@ -144,20 +223,32 @@ class ProjectRepositoryImpl(
 
     override fun getProjectFlowById(projectId: String): Flow<ProjectEntity?> =
         projectDao.getProjectFlowById(projectId)
-    
-    override fun getAllProjectsRaw(): Flow<List<ProjectEntity>> {
-        return projectDao.getAllProjectsFlow()
-    }
 
-    override fun getAllMaterialsRaw(): Flow<List<MaterialEntity>> {
-        return materialDao.getAllMaterialsFlow()
-    }
+    override fun getAllProjectsRaw(): Flow<List<ProjectEntity>> =
+        projectDao.getAllProjectsFlow()
 
-    override fun getAllLogicsRaw(): Flow<List<LogicEntity>> {
-        return logicDao.getAllLogicsFlow()
-    }
+    override fun getAllMaterialsRaw(): Flow<List<MaterialEntity>> =
+        materialDao.getAllMaterialsFlow()
 
-    override fun getAllDiagramsRaw(): Flow<List<DiagramEntity>> {
-        return diagramDao.getAllDiagramsFlow()
-    }
+    override fun getAllLogicsRaw(): Flow<List<LogicEntity>> =
+        logicDao.getAllLogicsFlow()
+
+    override fun getAllDiagramsRaw(): Flow<List<DiagramEntity>> =
+        diagramDao.getAllDiagramsFlow()
+
+    override fun getProjectSummary(targetProjectId: String): Flow<HierarchySummary> =
+        combine(
+            projectDao.getAllProjectsFlow(),
+            materialDao.getAllMaterialsFlow(),
+            logicDao.getAllLogicsFlow(),
+            diagramDao.getAllDiagramsFlow()
+        ) { allProjects, allMaterials, allLogics, allDiagrams ->
+            hierarchyService.calculateProjectSummary(
+                targetProjectId = targetProjectId,
+                allProjects = allProjects,
+                allMaterials = allMaterials,
+                allLogics = allLogics,
+                allDiagrams = allDiagrams
+            )
+        }
 }
