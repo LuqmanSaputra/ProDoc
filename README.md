@@ -1,30 +1,37 @@
 # ProDoc
 
-ProDoc adalah aplikasi Android berbasis untuk dokumentasi dan manajemen proyek.
+> **Professional Android Project Documentation & Management Application**
 
-Aplikasi mendukung pengelolaan:
-
-Main Project
-Sub Project
-Material
-Logic / Configuration
-Diagram
-QA Review
-Audit History
-Cloud Synchronization
-
-dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database dan Firebase.
+![Version](https://img.shields.io/badge/version-v1.1.1-blue)
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
+![Platform](https://img.shields.io/badge/platform-Android-green)
+![Language](https://img.shields.io/badge/Kotlin-100%25-purple)
+![Architecture](https://img.shields.io/badge/Architecture-MVVM-orange)
+![Database](https://img.shields.io/badge/Database-Room-blue)
+![Cloud](https://img.shields.io/badge/Cloud-Firebase-yellow)
 
 ---
 
-# Features
+# 📖 Overview
+
+**ProDoc** adalah aplikasi Android yang dirancang untuk membantu proses dokumentasi, pengelolaan, serta pengawasan proyek teknis secara terstruktur.
+
+Aplikasi menerapkan konsep **Offline First Architecture**, sehingga seluruh data disimpan terlebih dahulu pada database lokal menggunakan **Room Database**, kemudian disinkronkan ke cloud menggunakan **Firebase Firestore** melalui **WorkManager**.
+
+ProDoc mendukung pengelolaan proyek secara bertingkat (hierarchical project management), dokumentasi material, konfigurasi logika, diagram teknis, proses Quality Assurance (QA), audit history, serta sinkronisasi cloud.
+
+---
+
+# ✨ Key Features
 
 ## Authentication
 
-* Login Email & Password
-* Register Account
+* Login
+* Register
 * Firebase Authentication
-* Sign Out
+* Logout
+
+---
 
 ## Dashboard
 
@@ -35,85 +42,136 @@ dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database d
 * Sync Queue Counter
 * Project Summary
 
+---
+
 ## Project Management
 
 * Main Project
-* Sub Project
+* Unlimited Nested Sub Project
+* Recursive Project Navigation
 * Project Detail
-* Project Status Tracking
+* Category Management
+* Project Status
 
-## Sub Project
-
-* Open Sub Project
-* Edit Sub Project
-* Delete Sub Project
-* Recursive Navigation
-* Parent Child Relation
+---
 
 ## Material Management
 
 * Create Material
 * Edit Material
 * Delete Material
-* Material Detail Screen
+* Material Detail
+* QA Status
+
+---
 
 ## Logic Management
 
 * Create Logic
 * Edit Logic
 * Delete Logic
-* Logic Detail Screen
+* Logic Detail
+* QA Status
+
+---
 
 ## Diagram Management
 
 * Create Diagram
 * Edit Diagram
 * Delete Diagram
-* Diagram Detail Screen
+* Diagram Detail
+* QA Status
+
+---
 
 ## QA Workflow
 
 * Draft
-* Pending QA
+* Pending Review
 * Approved
 * Rejected
+* QA Audit Trail
 
-## History
+---
+
+## History & Audit Trail
 
 * Automatic History Logging
 * Project History
 * Material History
 * Logic History
 * Diagram History
-* Sub Project History
+* QA Approval History
+* QA Rejection History
+* Recursive History
 
-## UI & UX Refinement
+---
 
-* HorizontalPager Navigation
-* Swipe Navigation
-* Dialog Confirmation Barrier
-* Scrollable Detail Screen
-* State Preservation
-* Loading Overlay
+## Hierarchy Engine (v1.1.1)
+
+* Unlimited Nested Project
+* Recursive Navigation
+* Cascade Delete
+* Parent Child Summary
+* Hierarchy Validation
+* Project Summary Card
+
+---
 
 ## Offline First
 
 * Room Database
-* StateFlow
 * Repository Pattern
+* StateFlow
 * Sync Queue
+* Local First Storage
 
-## Synchronization
+---
+
+## Cloud Synchronization
 
 * Firebase Firestore
-* Push Sync
-* Pull Sync
-* WorkManager Sync
+* Push Synchronization
+* Pull Synchronization
+* WorkManager
 * Sync Queue Monitoring
 
 ---
 
-# Technology Stack
+# 🏗 Architecture
+
+ProDoc menerapkan arsitektur modern Android.
+
+```text
+UI (Jetpack Compose)
+        │
+        ▼
+ViewModel
+        │
+        ▼
+Repository
+        │
+        ▼
+Room Database
+        │
+        ▼
+Sync Queue
+        │
+        ▼
+Firebase Firestore
+```
+
+Prinsip utama:
+
+* UI tidak mengakses Room secara langsung.
+* UI tidak mengakses Firebase secara langsung.
+* Seluruh operasi dilakukan melalui Repository.
+* Seluruh perubahan data diproses secara Offline First.
+
+---
+
+# 🛠 Technology Stack
 
 ## Language
 
@@ -122,7 +180,7 @@ dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database d
 ## UI
 
 * Jetpack Compose
-* Material 3
+* Material Design 3
 
 ## Architecture
 
@@ -130,7 +188,7 @@ dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database d
 * Repository Pattern
 * Offline First Architecture
 
-## Local Storage
+## Local Database
 
 * Room Database
 
@@ -143,81 +201,84 @@ dengan penyimpanan database Local First + Cloud Sync menggunakan Room Database d
 
 * WorkManager
 
-## Async & Reactive
+## Reactive Programming
 
 * Kotlin Coroutines
 * StateFlow
 
-## Background Processing
-
-* WorkManager
-
-## Media
+## Image Loading
 
 * Coil
 
 ---
 
-# Architecture
-
-UI
-↓
-ViewModel
-↓
-Repository
-↓
-Room Database
-↓
-Sync Queue
-↓
-Firebase Firestore
-
-Alur:
-
-UI tidak mengakses database secara langsung
-UI tidak mengakses Firestore secara langsung
-Semua operasi melalui Repository Layer
-Semua data disimpan lokal terlebih dahulu sebelum sinkronisasi cloud
-
----
-
-# Project Structure
+# 📂 Project Structure
 
 ```text
 com.prodoc.app
 ├── data
-│ ├── local
-│ │ ├── dao
-│ │ ├── entity
-│ │ ├── converters
-│ │ └── ProDocDatabase
-│ │
-│ └── remote
-│
-├── model
-│
+│   ├── local
+│   │   ├── dao
+│   │   ├── entity
+│   │   ├── converters
+│   │   └── ProDocDatabase
+│   └── remote
+├── domain
+│   └── hierarchy
 ├── repository
-│
-├── worker
-│
 ├── ui
-│ ├── auth
-│ ├── dashboard
-│ ├── project
-│ ├── material
-│ ├── logic
-│ ├── diagram
-│ ├── qa
-│ └── history
-│
+│   ├── auth
+│   ├── dashboard
+│   ├── project
+│   ├── material
+│   ├── logic
+│   ├── diagram
+│   ├── history
+│   └── qa
+├── worker
 └── MainActivity
-
 ```
 
-# Current Status
+---
 
-Completed :
-## v1.0.0 Stable Release
+# 🚀 Current Release
+
+## v1.1.1 Stable
+
+### Added
+
+* Hierarchy Engine
+* Unlimited Nested Project
+* Recursive Navigation
+* Cascade Delete
+* Parent Child Summary
+* Project Summary Card
+* QA Audit Trail
+
+### Improved
+
+* HorizontalPager Stability
+* ScrollableTabRow Stability
+* Dashboard Summary
+* State Preservation
+* Audit Trail
+* Repository Integration
+
+### Fixed
+
+* HorizontalPager State Issue
+* Navigation State Issue
+* Scroll Issue
+* History Logging
+* QA History Synchronization
+
+---
+
+# 📌 Current Status
+
+✅ Stable Release
+
+Completed:
 
 * Authentication
 * Dashboard
@@ -225,62 +286,55 @@ Completed :
 * Material Management
 * Logic Management
 * Diagram Management
+* Hierarchy Engine
+* Cascade Delete
+* Parent Child Summary
 * QA Workflow
 * Audit History
-* Offline First Storage
+* Offline First Architecture
 * Firestore Synchronization
-
-## v1.1.0 Stable Refinement
-
-* Material Detail Screen
-* Logic Detail Screen
-* Diagram Detail Screen
-* HorizontalPager Navigation
-* Dialog Barrier
-* Scroll Fix
-* State Preservation
-* Dashboard Summary Enhancement
-* Audit Trail Enhancement
-* Sub Project Navigation Improvement
 
 ---
 
-# Screenshots
+# 🗺 Roadmap
+
+| Version | Status         |
+| ------- | -------------- |
+| v1.0.0  | ✅ Stable       |
+| v1.1.0  | ✅ Stable       |
+| v1.1.1  | ✅ Stable       |
+| v1.2.0  | 🚧 Development |
+| v1.3.0  | 📅 Planned     |
+| v2.0.0  | 🔮 Vision      |
+
+---
+
+# ⚠ Known Limitations
+
+Fitur berikut masih dalam tahap pengembangan:
+
+* Firebase Storage
+* Image Upload
+* PDF Upload
+* Attachment Manager
+* Export PDF
+* Export Excel
+* Reporting Engine
+* Advanced Search
+* Advanced Filter
+
+---
+
+# 📸 Screenshots
 
 Coming Soon
 
 ---
 
-## Known Limitations
-
-Saat ini beberapa fitur masih dalam pengembangan:
-
-* Cascade Delete belum diterapkan
-* Parent Child Summary belum tersedia
-* Firebase Storage belum tersedia
-* Upload Attachment belum tersedia
-* Export PDF belum tersedia
-* Export Excel belum tersedia
-
----
-
-# Development Status
-
-* MVVM Architecture
-* Repository Pattern
-* Offline First Architecture
-* Room First
-* Sync Queue First
-* Firestore sebagai sinkronisasi cloud
-* Tidak ada akses database langsung dari UI
-* Tidak ada akses Firestore langsung dari UI
-
----
-
-# License
+# 📄 License
 
 MIT License
 
 Copyright (c) 2026 ProDoc
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
