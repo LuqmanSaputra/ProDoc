@@ -6,9 +6,11 @@
 
 # Roadmap Overview
 
-ProDoc dikembangkan secara bertahap menggunakan pendekatan **incremental development**.
+ProDoc dikembangkan menggunakan pendekatan **Incremental Development** dengan prinsip **Stable Release First**.
 
-Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanpa mengorbankan stabilitas aplikasi.
+Setiap versi dikembangkan secara bertahap melalui beberapa **Milestone**, dimulai dari analisis arsitektur, implementasi fitur, validasi, hingga Stable Release.
+
+Roadmap ini berfokus pada pengembangan **Aplikasi Android ProDoc**, sedangkan perubahan teknologi pendukung akan didokumentasikan pada dokumen arsitektur.
 
 ---
 
@@ -19,9 +21,9 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 | v1.0.0  | ✅ Stable       | Initial Release                    |
 | v1.1.0  | ✅ Stable       | UI & Navigation Improvement        |
 | v1.1.1  | ✅ Stable       | Hierarchy Engine & Project Summary |
-| v1.2.0  | 🚧 Development | Attachment Management              |
+| v1.2.0  | 🚧 Development | Attachment Management Platform     |
 | v1.3.0  | 📅 Planned     | Reporting & Productivity           |
-| v2.0.0  | 🔮 Vision      | Enterprise Platform                |
+| v2.0.0  | 🔮 Vision      | Backend Foundation & Collaboration |
 
 ---
 
@@ -31,7 +33,6 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 
 ### Authentication
 
-* Firebase Authentication
 * Login
 * Register
 * Logout
@@ -60,7 +61,7 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 
 * CRUD Diagram
 
-### QA
+### Quality Assurance
 
 * QA Status
 
@@ -89,7 +90,7 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 
 ### Fixed
 
-* HorizontalPager Bug
+* HorizontalPager Synchronization
 * Scroll State Issue
 * Navigation Issue
 
@@ -115,8 +116,8 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 * Repository Integration
 * Dashboard Summary
 * Project Detail Summary
-* StateFlow Synchronization
 * Offline First Stability
+* StateFlow Synchronization
 
 ### Fixed
 
@@ -131,37 +132,84 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 
 # v1.2.0 Development
 
-## Attachment Management
+## Goal
 
-### Planned Features
+Membangun **Attachment Management Platform** sebagai fondasi dokumentasi proyek yang lebih lengkap tanpa mengubah arsitektur MVVM dan prinsip Offline First.
 
-* Firebase Storage Integration
+---
+
+## Milestone 1 — Architecture & Analysis
+
+### Architecture Review
+
+* MVVM Architecture Analysis
+* Repository Analysis
+* Dependency Analysis
+* Affected Files Identification
+* Migration Plan
+* Implementation Plan
+
+### Validation
+
+* Compile Validation
+* Warning Cleanup Strategy
+
+---
+
+## Milestone 2 — Attachment Management
+
+### Attachment Features
+
 * Image Upload
 * PDF Upload
 * Document Upload
-* Attachment Manager
-* File Preview
+* Attachment Metadata
+* Attachment Gallery
+* Attachment Detail
+
+### Preview
+
+* Image Preview
+* PDF Preview
 * Download Attachment
-* Upload Progress Indicator
 
 ---
 
-## Cloud Synchronization
+## Milestone 3 — Offline Synchronization
 
-* Attachment Sync
+### Offline First
+
+* Upload Queue
 * Retry Upload
 * Background Upload
-* Offline Upload Queue
+* Synchronization Queue
+* Conflict Handling Preparation
 
 ---
 
-## UI Improvement
+## Milestone 4 — Backend Foundation
 
-* Attachment Gallery
-* PDF Viewer
-* Image Viewer
+### Preparation
+
+* Backend Architecture Design
+* Database Migration Preparation
+* Cloud Storage Preparation
+* Attachment Synchronization Design
+* API Contract Design
+
+> Fokus milestone ini adalah **persiapan arsitektur**, bukan implementasi backend secara penuh.
+
+---
+
+## Milestone 5 — UI & User Experience
+
+### Improvement
+
 * Better Empty State
 * Better Loading State
+* Upload Progress
+* Attachment Viewer
+* Better Error Handling
 
 ---
 
@@ -177,8 +225,6 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 * QA Report
 * History Report
 
----
-
 ### Productivity
 
 * Advanced Search
@@ -187,8 +233,6 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 * Sorting
 * Favorites
 * Recent Project
-
----
 
 ### Dashboard
 
@@ -202,42 +246,31 @@ Setiap versi memiliki target yang jelas sehingga pengembangan tetap terarah tanp
 
 # v2.0.0 Vision
 
-## Enterprise Platform
+## Backend Foundation & Collaboration
 
 ### Backend
 
-* PostgreSQL
+* Backend Service
 * REST API
-* JWT Authentication
-* Spring Boot / ASP.NET Core / NestJS (TBD)
-
----
-
-### Multi Platform
-
-* Android
-* Web
-* iOS
-
----
+* Database Integration
+* Cloud Storage Integration
+* Authentication Gateway
 
 ### Collaboration
 
 * Multi User
+* Project Owner
+* Project Members
 * Role & Permission
+* Shared Project
 * Team Workspace
-* Real-time Collaboration
 
----
+### Synchronization
 
-### Cloud
-
-* Cloud Storage
-* File Versioning
 * Background Synchronization
 * Conflict Resolution
-
----
+* File Versioning
+* Automatic Retry
 
 ### Enterprise Features
 
@@ -260,9 +293,28 @@ ProDoc dikembangkan menggunakan prinsip berikut:
 * Material Design 3
 * Kotlin Best Practice
 * Single Source of Truth
-* Incremental Development
 * Stable Release First
+* Incremental Development
 * Backward Compatibility
+
+---
+
+# Official Development Workflow
+
+Setiap Milestone wajib mengikuti tahapan berikut:
+
+1. Architecture Analysis
+2. Dependency Analysis
+3. Affected Files Identification
+4. Migration Plan
+5. Implementation Plan
+6. Incremental Coding
+7. Compile Validation
+8. Warning Cleanup
+9. Documentation Update
+10. Stable Release
+
+Implementasi langsung tanpa melalui tahap analisis tidak direkomendasikan.
 
 ---
 
@@ -277,21 +329,25 @@ Status:
 * Production Ready
 * Stable Architecture
 * Offline First
-* Firebase Synchronization
 * Hierarchy Engine Completed
+* Dashboard Summary Completed
+* QA Workflow Completed
+* History System Completed
 
 ---
 
 ## Next Development Target
 
-**v1.2.0**
+**v1.2.0 — Attachment Management Platform**
 
-Fokus utama pengembangan selanjutnya adalah implementasi **Attachment Management** menggunakan **Firebase Storage**, sehingga pengguna dapat mengunggah gambar, dokumen PDF, serta file pendukung proyek secara langsung dari perangkat Android, Web, maupun iOS di masa mendatang.
+Fokus pengembangan berikutnya adalah membangun sistem Attachment Management yang tetap mempertahankan arsitektur MVVM, Repository Pattern, dan prinsip Offline First sebagai fondasi utama ProDoc.
 
 ---
 
 # Long-Term Vision
 
-ProDoc dirancang untuk berkembang dari aplikasi dokumentasi proyek berbasis Android menjadi platform dokumentasi proyek yang mendukung kolaborasi multi-platform, penyimpanan cloud, serta manajemen proyek teknis secara terintegrasi.
+ProDoc dikembangkan sebagai aplikasi Android untuk dokumentasi proyek teknis yang modern, stabil, dan mudah dikembangkan.
 
-Roadmap ini akan diperbarui pada setiap rilis utama sesuai dengan perkembangan fitur dan kebutuhan pengguna.
+Pengembangan jangka panjang akan difokuskan pada peningkatan kemampuan backend, sinkronisasi data, kolaborasi proyek, serta skalabilitas aplikasi tanpa mengubah fondasi arsitektur yang telah dibangun sejak versi v1.1.1.
+
+Roadmap ini akan diperbarui pada setiap Stable Release.
