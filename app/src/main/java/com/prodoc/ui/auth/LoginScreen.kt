@@ -47,7 +47,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("MASUK", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            //Text("Silakan masuk untuk mengelola dokumentasi proyek teknis.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
 
             Spacer(modifier = Modifier.height(32.dp))
 

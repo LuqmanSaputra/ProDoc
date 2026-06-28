@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class LogicDetailViewModel(
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
     private val logicId: String
 ) : ViewModel() {
 
@@ -30,7 +30,7 @@ class LogicDetailViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val result = database.logicDao().getLogicById(logicId)
+                val result = repository.getLogicById(logicId)
                 _logic.value = result
             } catch (e: Exception) {
                 Log.e("LogicDetailVM", "Gagal memuat data logic: ${e.localizedMessage}", e)
@@ -42,14 +42,14 @@ class LogicDetailViewModel(
 }
 
 class LogicDetailViewModelFactory(
-    @Suppress("UNUSED_PARAMETER") repository: ProjectRepository,
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
+    @Suppress("UNUSED_PARAMETER") private val database: ProDocDatabase,
     private val logicId: String
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LogicDetailViewModel::class.java)) {
-            return LogicDetailViewModel(database, logicId) as T
+            return LogicDetailViewModel(repository, logicId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

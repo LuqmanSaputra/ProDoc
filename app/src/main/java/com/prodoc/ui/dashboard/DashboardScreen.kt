@@ -1,5 +1,6 @@
 package com.prodoc.ui.dashboard
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +30,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -36,15 +39,11 @@ fun DashboardScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                            onSignOut()
+                            Log.d("ProDoc", "[Dashboard] Tombol Logout di TopAppBar ditekan.")
+                            showLogoutConfirmDialog = true
                         }
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Sign Out",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Keluar Akun")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -140,6 +139,34 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    if (showLogoutConfirmDialog) {
+        LaunchedEffect(Unit) {
+            Log.d("ProDoc", "[Dashboard] Dialog Logout tampil (showLogoutConfirmDialog == true).")
+        }
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmDialog = false },
+            title = { Text("Keluar dari Akun") },
+            text = { Text("Apakah Anda yakin ingin keluar dari akun ini?") },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirmDialog = false }) {
+                    Text("Batal")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        Log.d("ProDoc", "[Dashboard] User menekan tombol Logout konfirmasi di dalam Dialog.")
+                        showLogoutConfirmDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Logout", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 
     if (showAddDialog) {

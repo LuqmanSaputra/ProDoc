@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MaterialDetailViewModel(
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
     private val materialId: String
 ) : ViewModel() {
 
@@ -30,7 +30,7 @@ class MaterialDetailViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val result = database.materialDao().getMaterialById(materialId)
+                val result = repository.getMaterialById(materialId)
                 _material.value = result
             } catch (e: Exception) {
                 Log.e("MaterialDetailVM", "Gagal memuat data material: ${e.localizedMessage}", e)
@@ -42,14 +42,14 @@ class MaterialDetailViewModel(
 }
 
 class MaterialDetailViewModelFactory(
-    @Suppress("UNUSED_PARAMETER") repository: ProjectRepository,
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
+    @Suppress("UNUSED_PARAMETER") private val database: ProDocDatabase,
     private val materialId: String
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MaterialDetailViewModel::class.java)) {
-            return MaterialDetailViewModel(database, materialId) as T
+            return MaterialDetailViewModel(repository, materialId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

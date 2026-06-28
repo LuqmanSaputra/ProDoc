@@ -1,6 +1,8 @@
 package com.prodoc.repository
 
+import android.util.Log
 import androidx.room.withTransaction
+import com.google.firebase.auth.FirebaseAuth
 import com.prodoc.data.local.ProDocDatabase
 import com.prodoc.data.local.dao.*
 import com.prodoc.data.local.entity.*
@@ -10,6 +12,7 @@ import com.prodoc.model.ProjectStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 class ProjectRepositoryImpl(
@@ -116,7 +119,7 @@ class ProjectRepositoryImpl(
             deletePlan.logicIdsToDelete.forEach { id ->
                 logicMap[id]?.let { log ->
                     logicDao.deleteLogic(log)
-                    logHistoryAutomated(log.projectId, "Logic '${log.name}' diaktifkan untuk hapus via cascade")
+                    logHistoryAutomated(log.projectId, "Logic '${log.name}' diaktifkan untuk hapus via kaskade")
                     enqueueSyncAutomated("logics", log.logicId, "DELETE")
                 }
             }
@@ -124,7 +127,7 @@ class ProjectRepositoryImpl(
             deletePlan.diagramIdsToDelete.forEach { id ->
                 diagramMap[id]?.let { diag ->
                     diagramDao.deleteDiagram(diag)
-                    logHistoryAutomated(diag.projectId, "Diagram '${diag.name}' dibersihkan via cascade")
+                    logHistoryAutomated(diag.projectId, "Diagram '${diag.name}' dibersihkan via kaskade")
                     enqueueSyncAutomated("diagrams", diag.diagramId, "DELETE")
                 }
             }
@@ -251,4 +254,70 @@ class ProjectRepositoryImpl(
                 allDiagrams = allDiagrams
             )
         }
+
+    override suspend fun getMaterialById(materialId: String): MaterialEntity? =
+        materialDao.getMaterialById(materialId)
+
+    override suspend fun getLogicById(logicId: String): LogicEntity? =
+        logicDao.getLogicById(logicId)
+
+    override suspend fun getDiagramById(diagramId: String): DiagramEntity? =
+        diagramDao.getDiagramById(diagramId)
+
+    override fun getLocalUser(): Flow<UserEntity?> =
+        database.userDao().getLocalUser()
+
+    override suspend fun saveUser(user: UserEntity) {
+        database.userDao().saveUser(user)
+    }
+
+    override suspend fun clearUser() {
+        database.userDao().clearUser()
+    }
+
+    override fun isUserLoggedIn(): Boolean {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val result = currentUser != null
+        Log.d("ProDoc", "[Repository] isUserLoggedIn() dipanggil. currentUser: $currentUser, hasil Boolean: $result")
+        return result
+    }
+
+    override suspend fun registerWithEmail(name: String, email: String, password: String): UserEntity {
+        val authResult = FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password).await()
+        val firebaseUser = authResult.user ?: throw Exception("User tidak ditemukan pasca registrasi.")
+        val localUser = UserEntity(
+            uid = firebaseUser.uid,
+            name = name,
+            email = email,
+            createdAt = System.currentTimeMillis()
+        )
+        database.userDao().saveUser(localUser)
+        return localUser
+    }
+
+    override suspend fun loginWithEmail(email: String, password: String): UserEntity {
+        val authResult = FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password).await()
+        val firebaseUser = authResult.user ?: throw Exception("User tidak ditemukan pasca otentikasi.")
+        val localUser = UserEntity(
+            uid = firebaseUser.uid,
+            name = firebaseUser.displayName ?: "Nama",
+            email = email,
+            createdAt = System.currentTimeMillis()
+        )
+        database.userDao().saveUser(localUser)
+        return localUser
+    }
+
+    override suspend fun logout() {
+        val userBefore = FirebaseAuth.getInstance().currentUser
+        Log.d("ProDoc", "[Repository] Sebelum FirebaseAuth.signOut(). Nilai currentUser: $userBefore")
+
+        FirebaseAuth.getInstance().signOut()
+
+        val userAfter = FirebaseAuth.getInstance().currentUser
+        Log.d("ProDoc", "[Repository] Sesudah FirebaseAuth.signOut(). Nilai currentUser: $userAfter")
+
+        database.userDao().clearUser()
+        Log.d("ProDoc", "[Repository] Setelah clearUser() database lokal selesai dilakukan.")
+    }
 }

@@ -1,48 +1,39 @@
 package com.prodoc.ui.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
-import com.prodoc.data.local.dao.UserDao
-import com.prodoc.data.local.entity.UserEntity
+import com.prodoc.repository.ProjectRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-class AuthViewModel(private val userDao: UserDao) : ViewModel() {
+enum class AuthState {
+    LOGGED_IN,
+    LOGGED_OUT
+}
 
-    private val firebaseAuth = FirebaseAuth.getInstance()
+class AuthViewModel(private val repository: ProjectRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    val isUserLoggedIn: Boolean
-        get() = firebaseAuth.currentUser != null
+    private val _authState = MutableStateFlow(
+        if (repository.isUserLoggedIn()) AuthState.LOGGED_IN else AuthState.LOGGED_OUT
+    )
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     fun registerWithEmail(name: String, email: String, password: String) {
         _uiState.value = AuthUiState(isLoading = true)
         viewModelScope.launch {
             try {
-                val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-                val firebaseUser = authResult.user
-
-                if (firebaseUser != null) {
-                    val localUser = UserEntity(
-                        uid = firebaseUser.uid,
-                        name = name,
-                        email = email,
-                        createdAt = System.currentTimeMillis()
-                    )
-                    userDao.saveUser(localUser)
-                    _uiState.value = AuthUiState(isSuccess = true)
-                } else {
-                    _uiState.value = AuthUiState(errorMessage = "Gagal memuat data.")
-                }
+                repository.registerWithEmail(name, email, password)
+                _uiState.value = AuthUiState(isSuccess = true)
+                _authState.value = AuthState.LOGGED_IN
             } catch (e: Exception) {
-                _uiState.value = AuthUiState(errorMessage = e.localizedMessage ?: "Terjadi kesalahan.")
+                _uiState.value = AuthUiState(errorMessage = e.localizedMessage ?: "Registrasi akun baru gagal.")
             }
         }
     }
@@ -51,21 +42,26 @@ class AuthViewModel(private val userDao: UserDao) : ViewModel() {
         _uiState.value = AuthUiState(isLoading = true)
         viewModelScope.launch {
             try {
-                val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
-                val firebaseUser = authResult.user
-
-                if (firebaseUser != null) {
-                    val localUser = UserEntity(
-                        uid = firebaseUser.uid,
-                        name = firebaseUser.displayName ?: "Nama",
-                        email = email,
-                        createdAt = System.currentTimeMillis()
-                    )
-                    userDao.saveUser(localUser)
-                    _uiState.value = AuthUiState(isSuccess = true)
-                }
+                repository.loginWithEmail(email, password)
+                _uiState.value = AuthUiState(isSuccess = true)
+                _authState.value = AuthState.LOGGED_IN
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(errorMessage = e.localizedMessage ?: "Email atau Password salah.")
+            }
+        }
+    }
+
+    fun logout() {
+        _uiState.value = AuthUiState(isLoading = true)
+        viewModelScope.launch {
+            try {
+                repository.logout()
+                Log.d("ProDoc", "[ViewModel] AuthViewModel.logout() -> Repository selesai dijalankan.")
+                _uiState.value = AuthUiState(isSuccess = false, isLoading = false, errorMessage = null)
+
+                _authState.value = AuthState.LOGGED_OUT
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState(isLoading = false, errorMessage = e.localizedMessage ?: "Proses keluar akun gagal.")
             }
         }
     }
@@ -74,20 +70,22 @@ class AuthViewModel(private val userDao: UserDao) : ViewModel() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
+    @Suppress("unused")
     fun resetAuthState() {
         _uiState.value = AuthUiState(
             isLoading = false,
             isSuccess = false,
             errorMessage = null
         )
+        _authState.value = if (repository.isUserLoggedIn()) AuthState.LOGGED_IN else AuthState.LOGGED_OUT
     }
 }
 
-class AuthViewModelFactory(private val userDao: UserDao) : ViewModelProvider.Factory {
+class AuthViewModelFactory(private val repository: ProjectRepository) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-            return AuthViewModel(userDao) as T
+            return AuthViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

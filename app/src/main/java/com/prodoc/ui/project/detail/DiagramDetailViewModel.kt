@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class DiagramDetailViewModel(
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
     private val diagramId: String
 ) : ViewModel() {
 
@@ -28,7 +28,7 @@ class DiagramDetailViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val result = database.diagramDao().getDiagramById(diagramId)
+                val result = repository.getDiagramById(diagramId)
                 _diagram.value = result
             } catch (e: Exception) {
                 Log.e("DiagramDetailVM", "Gagal memuat data diagram: ${e.localizedMessage}", e)
@@ -40,14 +40,14 @@ class DiagramDetailViewModel(
 }
 
 class DiagramDetailViewModelFactory(
-    @Suppress("UNUSED_PARAMETER") repository: ProjectRepository,
-    private val database: ProDocDatabase,
+    private val repository: ProjectRepository,
+    @Suppress("UNUSED_PARAMETER") private val database: ProDocDatabase,
     private val diagramId: String
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DiagramDetailViewModel::class.java)) {
-            return DiagramDetailViewModel(database, diagramId) as T
+            return DiagramDetailViewModel(repository, diagramId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
