@@ -1,6 +1,7 @@
 package com.prodoc.app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.activity.compose.setContent
@@ -13,7 +14,11 @@ import androidx.navigation.compose.*
 import androidx.navigation.toRoute
 import com.prodoc.ProDocApplication
 import com.prodoc.navigation.Screens
-import com.prodoc.ui.auth.*
+import com.prodoc.ui.auth.AuthState
+import com.prodoc.ui.auth.AuthViewModel
+import com.prodoc.ui.auth.AuthViewModelFactory
+import com.prodoc.ui.auth.LoginScreen
+import com.prodoc.ui.auth.RegisterScreen
 import com.prodoc.ui.dashboard.*
 import com.prodoc.ui.project.*
 import com.prodoc.ui.project.detail.*
@@ -33,33 +38,52 @@ class MainActivity : ComponentActivity() {
                     val database = appContainer.database
 
                     val authViewModel: AuthViewModel by viewModels {
-                        AuthViewModelFactory(database.userDao())
+                        AuthViewModelFactory(repository)
                     }
 
                     val dashboardViewModel: DashboardViewModel by viewModels {
                         DashboardViewModelFactory(repository, database)
                     }
 
-                    val initialRoute = if (authViewModel.isUserLoggedIn) Screens.Dashboard else Screens.Auth
+                    val authState by authViewModel.authState.collectAsState()
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = initialRoute
-                    ) {
-                        composable<Screens.Auth> {
-                            var isRegisterMode by remember { mutableStateOf(false) }
+                    var lastProcessedAuthState by androidx.compose.runtime.saveable.rememberSaveable {
+                        mutableStateOf<String?>(null)
+                    }
 
-                            if (isRegisterMode) {
-                                RegisterScreen(
-                                    viewModel = authViewModel,
-                                    onRegisterSuccess = {
+                    LaunchedEffect(authState) {
+                        Log.d("ProDoc", "[MainActivity] Reaksi Konteks Navigasi Terhadap Perubahan AuthState: $authState")
+
+                        if (lastProcessedAuthState != authState.name) {
+                            when (authState) {
+                                AuthState.LOGGED_IN -> {
+                                    if (navController.currentDestination?.route == Screens.Auth::class.qualifiedName) {
                                         navController.navigate(Screens.Dashboard) {
                                             popUpTo(Screens.Auth) { inclusive = true }
                                         }
-                                    },
-                                    onNavigateToLogin = { isRegisterMode = false }
-                                )
-                            } else {
+                                    }
+                                }
+                                AuthState.LOGGED_OUT -> {
+                                    if (navController.currentDestination?.route != Screens.Auth::class.qualifiedName) {
+                                        navController.navigate(Screens.Auth) {
+                                            popUpTo(navController.graph.id) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            lastProcessedAuthState = authState.name
+                        }
+                    }
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screens.Auth
+                    ) {
+                        composable<Screens.Auth> {
+                            var showLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+                            if (showLogin) {
                                 LoginScreen(
                                     viewModel = authViewModel,
                                     onLoginSuccess = {
@@ -67,7 +91,17 @@ class MainActivity : ComponentActivity() {
                                             popUpTo(Screens.Auth) { inclusive = true }
                                         }
                                     },
-                                    onNavigateToRegister = { isRegisterMode = true }
+                                    onNavigateToRegister = { showLogin = false }
+                                )
+                            } else {
+                                RegisterScreen(
+                                    viewModel = authViewModel,
+                                    onRegisterSuccess = {
+                                        navController.navigate(Screens.Dashboard) {
+                                            popUpTo(Screens.Auth) { inclusive = true }
+                                        }
+                                    },
+                                    onNavigateToLogin = { showLogin = true }
                                 )
                             }
                         }
@@ -75,45 +109,35 @@ class MainActivity : ComponentActivity() {
                         composable<Screens.Dashboard> {
                             DashboardScreen(
                                 viewModel = dashboardViewModel,
-                                onProjectClick = { id ->
-                                    navController.navigate(Screens.ProjectDetail(projectId = id))
+                                onProjectClick = { projectId ->
+                                    navController.navigate(Screens.ProjectDetail(projectId))
                                 },
                                 onSignOut = {
-                                    authViewModel.resetAuthState()
-
-                                    navController.navigate(Screens.Auth) {
-                                        popUpTo(Screens.Dashboard) { inclusive = true }
-                                    }
+                                    authViewModel.logout()
                                 }
                             )
                         }
 
                         composable<Screens.ProjectDetail> { backStackEntry ->
                             val routeData = backStackEntry.toRoute<Screens.ProjectDetail>()
-
-                            val detailViewModel: ProjectDetailViewModel = viewModel(
+                            val projectDetailViewModel: ProjectDetailViewModel = viewModel(
                                 factory = ProjectDetailViewModelFactory(repository, routeData.projectId, database)
                             )
-
                             ProjectDetailScreen(
-                                viewModel = detailViewModel,
+                                viewModel = projectDetailViewModel,
                                 onBackClick = { navController.popBackStack() },
-                                onMaterialClick = { id -> navController.navigate(Screens.MaterialDetail(materialId = id)) },
-                                onLogicClick = { id -> navController.navigate(Screens.LogicDetail(logicId = id)) },
-                                onDiagramClick = { id -> navController.navigate(Screens.DiagramDetail(diagramId = id)) },
-                                onProjectClick = { id ->
-                                    navController.navigate(Screens.ProjectDetail(projectId = id))
-                                }
+                                onMaterialClick = { materialId -> navController.navigate(Screens.MaterialDetail(materialId)) },
+                                onLogicClick = { logicId -> navController.navigate(Screens.LogicDetail(logicId)) },
+                                onDiagramClick = { diagramId -> navController.navigate(Screens.DiagramDetail(diagramId)) },
+                                onProjectClick = { projectId -> navController.navigate(Screens.ProjectDetail(projectId)) }
                             )
                         }
 
                         composable<Screens.DiagramDetail> { backStackEntry ->
                             val routeData = backStackEntry.toRoute<Screens.DiagramDetail>()
-
                             val diagramDetailViewModel: DiagramDetailViewModel = viewModel(
                                 factory = DiagramDetailViewModelFactory(repository, database, routeData.diagramId)
                             )
-
                             DiagramDetailScreen(
                                 viewModel = diagramDetailViewModel,
                                 onBackClick = { navController.popBackStack() }
@@ -122,11 +146,9 @@ class MainActivity : ComponentActivity() {
 
                         composable<Screens.LogicDetail> { backStackEntry ->
                             val routeData = backStackEntry.toRoute<Screens.LogicDetail>()
-
                             val logicDetailViewModel: LogicDetailViewModel = viewModel(
                                 factory = LogicDetailViewModelFactory(repository, database, routeData.logicId)
                             )
-
                             LogicDetailScreen(
                                 viewModel = logicDetailViewModel,
                                 onBackClick = { navController.popBackStack() }
@@ -135,12 +157,11 @@ class MainActivity : ComponentActivity() {
 
                         composable<Screens.MaterialDetail> { backStackEntry ->
                             val routeData = backStackEntry.toRoute<Screens.MaterialDetail>()
-
                             val materialDetailViewModel: MaterialDetailViewModel = viewModel(
                                 factory = MaterialDetailViewModelFactory(repository, database, routeData.materialId)
                             )
-
                             MaterialDetailScreen(
+                                modifier = Modifier,
                                 viewModel = materialDetailViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )

@@ -41,4 +41,17 @@ interface ProjectRepository {
     fun getAllDiagramsRaw(): Flow<List<DiagramEntity>>
 
     fun getProjectSummary(targetProjectId: String): Flow<HierarchySummary>
+
+    suspend fun getMaterialById(materialId: String): MaterialEntity?
+    suspend fun getLogicById(logicId: String): LogicEntity?
+    suspend fun getDiagramById(diagramId: String): DiagramEntity?
+
+    fun getLocalUser(): Flow<UserEntity?>
+    suspend fun saveUser(user: UserEntity)
+    suspend fun clearUser()
+    fun isUserLoggedIn(): Boolean
+    suspend fun registerWithEmail(name: String, email: String, password: String): UserEntity
+    suspend fun loginWithEmail(email: String, password: String): UserEntity
+
+    suspend fun logout()
 }

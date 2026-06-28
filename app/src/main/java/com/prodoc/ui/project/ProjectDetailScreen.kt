@@ -173,11 +173,11 @@ fun ProjectDetailScreen(
                     if (currentProject != null) {
                         HorizontalPager(
                             state = pagerState,
-                            key = { page -> tabsToDisplay[page].name },
+                            key = { page -> tabsToDisplay.getOrNull(page)?.name ?: page.toString() },
                             modifier = Modifier.fillMaxSize(),
                             verticalAlignment = Alignment.Top
                         ) { page ->
-                            val currentTabType = tabsToDisplay[page]
+                            val currentTabType = tabsToDisplay.getOrNull(page) ?: ProjectTab.DETAIL
                             androidx.compose.runtime.key(currentTabType) {
                                 Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                                     when (currentTabType) {
