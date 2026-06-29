@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prodoc.data.local.entity.MaterialEntity
+import com.prodoc.data.local.entity.MaterialUnit
 import com.prodoc.model.QAStatus
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,8 +30,8 @@ import java.util.Locale
 @Composable
 fun MaterialTabContent(
     materials: List<MaterialEntity>,
-    onAddMaterialClick: (String, String, Double) -> Unit,
-    onEditMaterialClick: (MaterialEntity, String, String, Double) -> Unit,
+    onAddMaterialClick: (String, String, Double, MaterialUnit, Double) -> Unit,
+    onEditMaterialClick: (MaterialEntity, String, String, Double, MaterialUnit, Double) -> Unit,
     onDeleteMaterialClick: (MaterialEntity) -> Unit,
     onMaterialClick: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -144,7 +145,9 @@ fun MaterialTabContent(
     if (showAddDialog) {
         var name by remember { mutableStateOf("") }
         var desc by remember { mutableStateOf("") }
-        var priceStr by remember { mutableStateOf("") }
+        var qtyStr by remember { mutableStateOf("") }
+        var unit by remember { mutableStateOf(MaterialUnit.PCS) }
+        var unitPriceStr by remember { mutableStateOf("") }
 
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
@@ -156,15 +159,21 @@ fun MaterialTabContent(
                         .verticalScroll(rememberScrollState())
                         .imePadding()
                 ) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang/Material") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi / Spesifikasi") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("Harga (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = qtyStr, onValueChange = { qtyStr = it }, label = { Text("Kuantitas") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    Text(text = "Satuan: ${unit.name}", modifier = Modifier.clickable {
+                        val values = MaterialUnit.entries.toTypedArray()
+                        unit = values[(unit.ordinal + 1) % values.size]
+                    }.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = unitPriceStr, onValueChange = { unitPriceStr = it }, label = { Text("Harga Satuan (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val price = priceStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && price > 0) { onAddMaterialClick(name, desc, price); showAddDialog = false }
+                    val qty = qtyStr.toDoubleOrNull() ?: 0.0
+                    val uPrice = unitPriceStr.toDoubleOrNull() ?: 0.0
+                    if (name.isNotBlank() && qty > 0 && uPrice >= 0) { onAddMaterialClick(name, desc, qty, unit, uPrice); showAddDialog = false }
                 }) { Text("Simpan") }
             },
             dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Batal") } }
@@ -174,7 +183,9 @@ fun MaterialTabContent(
     if (editingMaterial != null) {
         var name by remember { mutableStateOf(editingMaterial!!.name) }
         var desc by remember { mutableStateOf(editingMaterial!!.description) }
-        var priceStr by remember { mutableStateOf(editingMaterial!!.price.toString()) }
+        var qtyStr by remember { mutableStateOf(editingMaterial!!.quantity.toString()) }
+        var unit by remember { mutableStateOf(editingMaterial!!.unit) }
+        var unitPriceStr by remember { mutableStateOf(editingMaterial!!.unitPrice.toString()) }
 
         AlertDialog(
             onDismissRequest = { editingMaterial = null },
@@ -188,13 +199,19 @@ fun MaterialTabContent(
                 ) {
                     OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Barang") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("Harga (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = qtyStr, onValueChange = { qtyStr = it }, label = { Text("Kuantitas") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                    Text(text = "Satuan: ${unit.name}", modifier = Modifier.clickable {
+                        val values = MaterialUnit.entries.toTypedArray()
+                        unit = values[(unit.ordinal + 1) % values.size]
+                    }.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = unitPriceStr, onValueChange = { unitPriceStr = it }, label = { Text("Harga Satuan (Rp)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val price = priceStr.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank()) { onEditMaterialClick(editingMaterial!!, name, desc, price); editingMaterial = null }
+                    val qty = qtyStr.toDoubleOrNull() ?: 0.0
+                    val uPrice = unitPriceStr.toDoubleOrNull() ?: 0.0
+                    if (name.isNotBlank() && qty > 0 && uPrice >= 0) { onEditMaterialClick(editingMaterial!!, name, desc, qty, unit, uPrice); editingMaterial = null }
                 }) { Text("Perbarui") }
             },
             dismissButton = { TextButton(onClick = { editingMaterial = null }) { Text("Batal") } }

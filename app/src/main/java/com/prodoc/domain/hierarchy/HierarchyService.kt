@@ -113,7 +113,7 @@ class HierarchyService {
         allMaterials.forEach { material ->
             if (material.projectId in affectedProjectIds) {
                 totalMaterials++
-                totalMaterialCost += material.price
+                totalMaterialCost += material.totalPrice
             }
         }
 

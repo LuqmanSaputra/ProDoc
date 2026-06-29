@@ -11,9 +11,18 @@ data class MaterialEntity(
     val projectId: String,
     val name: String,
     val description: String,
-    val price: Double,
+    val quantity: Double,
+    val unit: MaterialUnit,
+    val unitPrice: Double,
     val photoUrl: String? = null,
     val qaStatus: QAStatus = QAStatus.DRAFT,
     val rejectionReason: String? = null,
     val createdAt: Long = System.currentTimeMillis()
-)
+) {
+    val totalPrice: Double
+        get() = quantity * unitPrice
+}
+
+enum class MaterialUnit {
+    PCS, METER, CM, MM, ROLL, BOX, PACK, UNIT, LITER, KG, OTHER
+}

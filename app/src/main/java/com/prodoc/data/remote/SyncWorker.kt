@@ -83,12 +83,25 @@ class SyncWorker(
             val remoteMaterials = firestore.collection("materials").get().await()
             for (doc in remoteMaterials.documents) {
                 val qaStr = doc.getString("qaStatus") ?: "DRAFT"
+
+                val rawQuantity = doc.getDouble("quantity")
+                val rawPrice = doc.getDouble("price")
+
+                val isOldSchema = rawPrice != null && rawQuantity == null
+
+                val finalQuantity = if (isOldSchema) 1.0 else (rawQuantity ?: 0.0)
+                val finalUnitPrice = if (isOldSchema) rawPrice else (doc.getDouble("unitPrice") ?: 0.0)
+                val unitStr = if (isOldSchema) "PCS" else (doc.getString("unit") ?: "PCS")
+
                 val material = MaterialEntity(
                     materialId = doc.id,
                     projectId = doc.getString("projectId") ?: "",
                     name = doc.getString("name") ?: "",
                     description = doc.getString("description") ?: "",
-                    price = doc.getDouble("price") ?: 0.0,
+                    quantity = finalQuantity,
+                    unit = try { MaterialUnit.valueOf(unitStr) } catch (_: Exception) { MaterialUnit.OTHER },
+                    unitPrice = finalUnitPrice,
+                    photoUrl = doc.getString("photoUrl"),
                     qaStatus = try { QAStatus.valueOf(qaStr) } catch (_: Exception) { QAStatus.DRAFT },
                     rejectionReason = doc.getString("rejectionReason")
                 )

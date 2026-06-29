@@ -35,4 +35,18 @@ class Converters {
             QAStatus.DRAFT
         }
     }
+
+    @TypeConverter
+    fun fromMaterialUnit(unit: com.prodoc.data.local.entity.MaterialUnit): String {
+        return unit.name
+    }
+
+    @TypeConverter
+    fun toMaterialUnit(value: String): com.prodoc.data.local.entity.MaterialUnit {
+        return try {
+            com.prodoc.data.local.entity.MaterialUnit.valueOf(value)
+        } catch (_: IllegalArgumentException) {
+            com.prodoc.data.local.entity.MaterialUnit.OTHER
+        }
+    }
 }

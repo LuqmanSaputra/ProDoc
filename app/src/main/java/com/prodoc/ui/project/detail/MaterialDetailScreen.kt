@@ -84,9 +84,18 @@ fun MaterialDetailScreen(
 
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                            Text(text = "Harga Perangkat", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+                            Text(text = "Harga Satuan & Kuantitas", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                             Text(
-                                text = rupiahFormatter.format(currentMaterial.price),
+                                text = "${rupiahFormatter.format(currentMaterial.unitPrice)} x ${currentMaterial.quantity} ${currentMaterial.unit.name}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(text = "Total Harga", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+                            Text(
+                                text = rupiahFormatter.format(currentMaterial.totalPrice),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary

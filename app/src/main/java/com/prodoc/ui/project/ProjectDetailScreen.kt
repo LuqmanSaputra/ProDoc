@@ -231,8 +231,8 @@ fun ProjectDetailScreen(
                                         )
                                         ProjectTab.MATERIAL -> MaterialTabContent(
                                             materials = uiState.materials,
-                                            onAddMaterialClick = { name, desc, price -> viewModel.addMaterialToProject(name, desc, price) },
-                                            onEditMaterialClick = { entity, name, desc, price -> pendingEditMaterial = MaterialEditPayload(entity, name, desc, price) },
+                                            onAddMaterialClick = { name, desc, qty, unit, uPrice -> viewModel.addMaterialToProject(name, desc, qty, unit, uPrice) },
+                                            onEditMaterialClick = { entity, name, desc, qty, unit, uPrice -> pendingEditMaterial = MaterialEditPayload(entity, name, desc, qty, unit, uPrice) },
                                             onDeleteMaterialClick = { entity -> pendingDeleteMaterial = entity },
                                             onMaterialClick = onMaterialClick
                                         )
@@ -359,7 +359,7 @@ fun ProjectDetailScreen(
             title = { Text("Konfirmasi Perubahan Material") },
             text = { Text("Apakah Anda yakin ingin menyimpan perubahan data pada material '${pendingEditMaterial!!.entity.name}'?") },
             confirmButton = {
-                TextButton(onClick = { val p = pendingEditMaterial!!; viewModel.editMaterial(p.entity, p.name, p.desc, p.price); pendingEditMaterial = null }) { Text("Ya, Ubah", fontWeight = FontWeight.Bold) }
+                TextButton(onClick = { val p = pendingEditMaterial!!; viewModel.editMaterial(p.entity, p.name, p.desc, p.quantity, p.unit, p.unitPrice); pendingEditMaterial = null }) { Text("Ya, Ubah", fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { pendingEditMaterial = null }) { Text("Lanjut Ubah") } }
         )
@@ -523,6 +523,6 @@ fun ProjectSummaryCard(
 }
 
 data class SubProjectEditPayload(val entity: ProjectEntity, val name: String, val category: String, val description: String)
-data class MaterialEditPayload(val entity: MaterialEntity, val name: String, val desc: String, val price: Double)
+data class MaterialEditPayload(val entity: MaterialEntity, val name: String, val desc: String, val quantity: Double, val unit: com.prodoc.data.local.entity.MaterialUnit, val unitPrice: Double)
 data class LogicEditPayload(val entity: LogicEntity, val name: String, val desc: String, val config: String)
 data class DiagramEditPayload(val entity: DiagramEntity, val name: String, val desc: String, val photo: String, val pdf: String?, val drawio: String?)

@@ -130,15 +130,18 @@ class ProjectDetailViewModel(
         }
     }
 
-    fun addMaterialToProject(name: String, description: String, price: Double) {
+    fun addMaterialToProject(name: String, description: String, quantity: Double, unit: MaterialUnit, unitPrice: Double) {
         viewModelScope.launch {
             try {
+                if (quantity <= 0 || unitPrice < 0) return@launch
                 val newMaterial = MaterialEntity(
                     materialId = UUID.randomUUID().toString(),
                     projectId = projectId,
                     name = name,
                     description = description,
-                    price = price,
+                    quantity = quantity,
+                    unit = unit,
+                    unitPrice = unitPrice,
                     qaStatus = QAStatus.DRAFT
                 )
                 repository.insertMaterial(newMaterial)
@@ -148,12 +151,15 @@ class ProjectDetailViewModel(
         }
     }
 
-    fun editMaterial(material: MaterialEntity, newName: String, newDesc: String, newPrice: Double) {
+    fun editMaterial(material: MaterialEntity, newName: String, newDesc: String, newQuantity: Double, newUnit: MaterialUnit, newUnitPrice: Double) {
         viewModelScope.launch {
+            if (newQuantity <= 0 || newUnitPrice < 0) return@launch
             val updatedMaterial = material.copy(
                 name = newName,
                 description = newDesc,
-                price = newPrice,
+                quantity = newQuantity,
+                unit = newUnit,
+                unitPrice = newUnitPrice,
                 qaStatus = QAStatus.DRAFT,
                 rejectionReason = null
             )
