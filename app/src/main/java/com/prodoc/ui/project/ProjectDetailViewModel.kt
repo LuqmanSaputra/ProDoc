@@ -360,6 +360,25 @@ class ProjectDetailViewModel(
         }
     }
 
+    fun editCurrentProject(name: String, category: String, description: String) {
+        viewModelScope.launch {
+            try {
+                val currentProject = uiState.value.project
+                if (currentProject != null) {
+                    val updatedProject = currentProject.copy(
+                        name = name,
+                        category = category,
+                        description = description,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    repository.updateProject(updatedProject)
+                }
+            } catch (e: Exception) {
+                Log.e("ProjectDetailVM", "Gagal memperbarui project utama: ${e.localizedMessage}", e)
+            }
+        }
+    }
+
     fun deleteCurrentProject(onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {

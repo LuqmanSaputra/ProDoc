@@ -8,8 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,13 +24,10 @@ import java.util.Locale
 fun SubProjectTabContent(
     subProjects: List<ProjectEntity>,
     onAddSubProjectClick: (String, String, String) -> Unit,
-    onEditSubProjectClick: (ProjectEntity, String, String, String) -> Unit,
-    onDeleteSubProjectClick: (ProjectEntity) -> Unit,
     onSubProjectClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
-    var editingSubProject by remember { mutableStateOf<ProjectEntity?>(null) }
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -85,14 +80,6 @@ fun SubProjectTabContent(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(onClick = { editingSubProject = sub }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                    IconButton(onClick = { onDeleteSubProjectClick(sub) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
-                                    }
-                                }
                             }
                         }
                     }
@@ -136,36 +123,6 @@ fun SubProjectTabContent(
                 }) { Text("Simpan") }
             },
             dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("Batal") } }
-        )
-    }
-
-    if (editingSubProject != null) {
-        var name by remember { mutableStateOf(editingSubProject!!.name) }
-        var category by remember { mutableStateOf(editingSubProject!!.category) }
-        var desc by remember { mutableStateOf(editingSubProject!!.description) }
-
-        AlertDialog(
-            onDismissRequest = { editingSubProject = null },
-            title = { Text("Ubah Informasi Sub-Project") },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState()).imePadding()
-                ) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Sub-Project") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Kategori") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (name.isNotBlank() && category.isNotBlank()) {
-                        onEditSubProjectClick(editingSubProject!!, name, category, desc)
-                        editingSubProject = null
-                    }
-                }) { Text("Diubah") }
-            },
-            dismissButton = { TextButton(onClick = { editingSubProject = null }) { Text("Batal") } }
         )
     }
 }

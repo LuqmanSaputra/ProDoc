@@ -82,6 +82,17 @@ fun DiagramTabContent(
                                 overflow = TextOverflow.Ellipsis
                             )
 
+                            if (diagram.qaStatus == QAStatus.REJECTED && !diagram.rejectionReason.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Alasan Ditolak: ${diagram.rejectionReason}",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(

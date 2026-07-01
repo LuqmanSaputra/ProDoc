@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -79,10 +80,12 @@ fun ProjectDetailScreen(
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
     val coroutineScope = rememberCoroutineScope()
 
-    var showDeleteConfirm by remember { mutableStateOf(false) }
     var reviewingMaterial by remember { mutableStateOf<MaterialEntity?>(null) }
     var reviewingLogic by remember { mutableStateOf<LogicEntity?>(null) }
     var reviewingDiagram by remember { mutableStateOf<DiagramEntity?>(null) }
+
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showEditProjectDialog by remember { mutableStateOf(false) }
 
     var pendingDeleteSubProject by remember { mutableStateOf<ProjectEntity?>(null) }
     var pendingEditSubProject by remember { mutableStateOf<SubProjectEditPayload?>(null) }
@@ -211,22 +214,35 @@ fun ProjectDetailScreen(
                                                     }
                                                 }
 
-                                                Button(
-                                                    onClick = { showDeleteConfirm = true },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                                    modifier = Modifier.fillMaxWidth()
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                                                 ) {
-                                                    Icon(Icons.Default.Delete, contentDescription = null)
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("Hapus Project")
+                                                    Button(
+                                                        onClick = { showDeleteConfirmDialog = true },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Icon(Icons.Default.Delete, contentDescription = "Hapus Project")
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Hapus")
+                                                    }
+
+                                                    Button(
+                                                        onClick = { showEditProjectDialog = true },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Icon(Icons.Default.Edit, contentDescription = "Edit Project")
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Edit")
+                                                    }
                                                 }
                                             }
                                         }
                                         ProjectTab.SUB_PROJECT -> SubProjectTabContent(
                                             subProjects = uiState.subProjects,
                                             onAddSubProjectClick = { name, cat, desc -> viewModel.addSubProject(name, cat, desc) },
-                                            onEditSubProjectClick = { sub, name, cat, desc -> pendingEditSubProject = SubProjectEditPayload(sub, name, cat, desc) },
-                                            onDeleteSubProjectClick = { sub -> pendingDeleteSubProject = sub },
                                             onSubProjectClick = onProjectClick
                                         )
                                         ProjectTab.MATERIAL -> MaterialTabContent(
@@ -330,15 +346,15 @@ fun ProjectDetailScreen(
         )
     }
 
-    if (showDeleteConfirm) {
+    if (showDeleteConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
+            onDismissRequest = { showDeleteConfirmDialog = false },
             title = { Text("Konfirmasi Penghapusan Project") },
             text = { Text("Apakah Anda yakin ingin menghapus dokumen project ini? Seluruh data komponen di dalamnya akan ikut dibersihkan permanen.") },
             confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; viewModel.deleteCurrentProject { onBackClick() } }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Hapus", fontWeight = FontWeight.Bold) }
+                TextButton(onClick = { showDeleteConfirmDialog = false; viewModel.deleteCurrentProject { onBackClick() } }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Hapus", fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Batal") } }
+            dismissButton = { TextButton(onClick = { showDeleteConfirmDialog = false }) { Text("Batal") } }
         )
     }
 
@@ -353,6 +369,57 @@ fun ProjectDetailScreen(
             dismissButton = { TextButton(onClick = { pendingDeleteMaterial = null }) { Text("Batal") } }
         )
     }
+
+    if (showEditProjectDialog && uiState.project != null) {
+        var name by remember { mutableStateOf(uiState.project!!.name) }
+        var category by remember { mutableStateOf(uiState.project!!.category) }
+        var desc by remember { mutableStateOf(uiState.project!!.description) }
+        var showConfirmDialog by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showEditProjectDialog = false },
+            title = { Text("Edit Project") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Kategori") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (name.isNotBlank() && category.isNotBlank()) {
+                        showConfirmDialog = true
+                    }
+                }) { Text("Simpan", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditProjectDialog = false }) { Text("Batal") }
+            }
+        )
+
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text("Konfirmasi Perubahan") },
+                text = { Text("Apakah Anda yakin ingin menyimpan perubahan Project ini?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.editCurrentProject(name, category, desc)
+                        showConfirmDialog = false
+                        showEditProjectDialog = false
+                    }) { Text("Ya, Simpan", fontWeight = FontWeight.Bold) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) { Text("Batal") }
+                }
+            )
+        }
+    }
+
     if (pendingEditMaterial != null) {
         AlertDialog(
             onDismissRequest = { pendingEditMaterial = null },

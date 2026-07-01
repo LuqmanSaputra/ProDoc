@@ -82,6 +82,17 @@ fun LogicTabContent(
                                 overflow = TextOverflow.Ellipsis
                             )
 
+                            if (logic.qaStatus == QAStatus.REJECTED && !logic.rejectionReason.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Alasan Ditolak: ${logic.rejectionReason}",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(
