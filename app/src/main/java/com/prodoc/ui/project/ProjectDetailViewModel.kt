@@ -290,6 +290,7 @@ class ProjectDetailViewModel(
 
     fun updateMaterialQaStatus(material: MaterialEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
+            if (newStatus == QAStatus.REJECTED && reason.isNullOrBlank()) return@launch
             try {
                 val updated = material.copy(qaStatus = newStatus, rejectionReason = reason)
                 repository.updateMaterial(updated)
@@ -314,6 +315,7 @@ class ProjectDetailViewModel(
 
     fun updateLogicQaStatus(logic: LogicEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
+            if (newStatus == QAStatus.REJECTED && reason.isNullOrBlank()) return@launch
             try {
                 val updated = logic.copy(qaStatus = newStatus, rejectionReason = reason)
                 repository.updateLogic(updated)
@@ -338,6 +340,7 @@ class ProjectDetailViewModel(
 
     fun updateDiagramQaStatus(diagram: DiagramEntity, newStatus: QAStatus, reason: String? = null) {
         viewModelScope.launch {
+            if (newStatus == QAStatus.REJECTED && reason.isNullOrBlank()) return@launch
             try {
                 val updated = diagram.copy(qaStatus = newStatus, rejectionReason = reason)
                 repository.updateDiagram(updated)

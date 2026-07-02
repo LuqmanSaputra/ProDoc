@@ -58,7 +58,6 @@ import com.prodoc.data.local.entity.LogicEntity
 import com.prodoc.data.local.entity.MaterialEntity
 import com.prodoc.data.local.entity.ProjectEntity
 import com.prodoc.domain.hierarchy.HierarchySummary
-import com.prodoc.model.QAStatus
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -97,6 +96,10 @@ fun ProjectDetailScreen(
     var pendingEditMaterial by remember { mutableStateOf<MaterialEditPayload?>(null) }
     var pendingEditLogic by remember { mutableStateOf<LogicEditPayload?>(null) }
     var pendingEditDiagram by remember { mutableStateOf<DiagramEditPayload?>(null) }
+
+    var showApproveConfirmationDialog by remember { mutableStateOf(false) }
+    var showRejectConfirmationDialog by remember { mutableStateOf(false) }
+    var pendingRejectReason by remember { mutableStateOf("") }
 
     val tabsToDisplay = remember(uiState.project?.parentProjectId) {
         if (uiState.project?.parentProjectId != null) {
@@ -478,22 +481,74 @@ fun ProjectDetailScreen(
         )
     }
 
-    if (reviewingMaterial != null) {
-        ReviewQADialog(title = "Review QA: ${reviewingMaterial!!.name}", description = "Validasi aset perangkat material ini:", onDismiss = { reviewingMaterial = null },
-            onApprove = { viewModel.updateMaterialQaStatus(reviewingMaterial!!, QAStatus.APPROVED); reviewingMaterial = null },
-            onReject = { r -> viewModel.updateMaterialQaStatus(reviewingMaterial!!, QAStatus.REJECTED, r.ifBlank { "Ditolak oleh QA" }); reviewingMaterial = null }
+    if (!showApproveConfirmationDialog && !showRejectConfirmationDialog) {
+        if (reviewingMaterial != null) {
+            ReviewQADialog(title = "Review QA: ${reviewingMaterial!!.name}", description = "Validasi aset perangkat material ini:", initialReason = pendingRejectReason, onDismiss = { reviewingMaterial = null },
+                onApprove = { showApproveConfirmationDialog = true },
+                onReject = { r -> pendingRejectReason = r; showRejectConfirmationDialog = true }
+            )
+        }
+        if (reviewingLogic != null) {
+            ReviewQADialog(title = "Review QA: ${reviewingLogic!!.name}", description = "Validasi  berkas skrip konfigurasi jaringan ini:", initialReason = pendingRejectReason, onDismiss = { reviewingLogic = null },
+                onApprove = { showApproveConfirmationDialog = true },
+                onReject = { r -> pendingRejectReason = r; showRejectConfirmationDialog = true }
+            )
+        }
+        if (reviewingDiagram != null) {
+            ReviewQADialog(title = "Review QA: ${reviewingDiagram!!.name}", description = "Validasi dokumen gambar topologi ini:", initialReason = pendingRejectReason, onDismiss = { reviewingDiagram = null },
+                onApprove = { showApproveConfirmationDialog = true },
+                onReject = { r -> pendingRejectReason = r; showRejectConfirmationDialog = true }
+            )
+        }
+    }
+
+    if (showApproveConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showApproveConfirmationDialog = false },
+            title = { Text("Konfirmasi Persetujuan") },
+            text = { Text("Apakah Anda yakin ingin menyetujui hasil QA ini?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    reviewingMaterial?.let { viewModel.updateMaterialQaStatus(it, com.prodoc.model.QAStatus.APPROVED) }
+                    reviewingLogic?.let { viewModel.updateLogicQaStatus(it, com.prodoc.model.QAStatus.APPROVED) }
+                    reviewingDiagram?.let { viewModel.updateDiagramQaStatus(it, com.prodoc.model.QAStatus.APPROVED) }
+
+                    showApproveConfirmationDialog = false
+                    reviewingMaterial = null
+                    reviewingLogic = null
+                    reviewingDiagram = null
+                }) { Text("Ya, Setujui", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApproveConfirmationDialog = false }) { Text("Batal") }
+            }
         )
     }
-    if (reviewingLogic != null) {
-        ReviewQADialog(title = "Review QA: ${reviewingLogic!!.name}", description = "Validasi  berkas skrip konfigurasi jaringan ini:", onDismiss = { reviewingLogic = null },
-            onApprove = { viewModel.updateLogicQaStatus(reviewingLogic!!, QAStatus.APPROVED); reviewingLogic = null },
-            onReject = { r -> viewModel.updateLogicQaStatus(reviewingLogic!!, QAStatus.REJECTED, r.ifBlank { "Ditolak oleh QA" }); reviewingLogic = null }
-        )
-    }
-    if (reviewingDiagram != null) {
-        ReviewQADialog(title = "Review QA: ${reviewingDiagram!!.name}", description = "Validasi dokumen gambar topologi ini:", onDismiss = { reviewingDiagram = null },
-            onApprove = { viewModel.updateDiagramQaStatus(reviewingDiagram!!, QAStatus.APPROVED); reviewingDiagram = null },
-            onReject = { r -> viewModel.updateDiagramQaStatus(reviewingDiagram!!, QAStatus.REJECTED, r.ifBlank { "Ditolak oleh QA" }); reviewingDiagram = null }
+
+    if (showRejectConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showRejectConfirmationDialog = false },
+            title = { Text("Konfirmasi Penolakan") },
+            text = { Text("Apakah Anda yakin ingin menolak hasil QA ini?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        reviewingMaterial?.let { viewModel.updateMaterialQaStatus(it, com.prodoc.model.QAStatus.REJECTED, pendingRejectReason) }
+                        reviewingLogic?.let { viewModel.updateLogicQaStatus(it, com.prodoc.model.QAStatus.REJECTED, pendingRejectReason) }
+                        reviewingDiagram?.let { viewModel.updateDiagramQaStatus(it, com.prodoc.model.QAStatus.REJECTED, pendingRejectReason) }
+
+                        showRejectConfirmationDialog = false
+                        pendingRejectReason = ""
+                        reviewingMaterial = null
+                        reviewingLogic = null
+                        reviewingDiagram = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Ya, Tolak", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRejectConfirmationDialog = false }) { Text("Batal") }
+            }
         )
     }
 }
@@ -509,8 +564,8 @@ fun ItemRowQA(name: String, status: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ReviewQADialog(title: String, description: String, onDismiss: () -> Unit, onApprove: () -> Unit, onReject: (String) -> Unit) {
-    var reason by remember { mutableStateOf("") }
+fun ReviewQADialog(title: String, description: String, initialReason: String = "", onDismiss: () -> Unit, onApprove: () -> Unit, onReject: (String) -> Unit) {
+    var reason by remember { mutableStateOf(initialReason) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -521,7 +576,16 @@ fun ReviewQADialog(title: String, description: String, onDismiss: () -> Unit, on
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onApprove) { Text("APPROVE", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
-                TextButton(onClick = { onReject(reason) }) { Text("REJECT", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) }
+                TextButton(
+                    onClick = { onReject(reason.trim()) },
+                    enabled = reason.trim().isNotEmpty()
+                ) {
+                    Text(
+                        "REJECT",
+                        color = if (reason.trim().isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     )
